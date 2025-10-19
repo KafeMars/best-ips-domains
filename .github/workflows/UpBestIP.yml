@@ -5,7 +5,8 @@ on:
     branches: [ main ]
     paths:
       - "BestDomains"      # 监听 BestDomains 文件的更新
-      - "BestIPs"      # 监听 BestIPs 文件的更新
+      - "BestIPs_v4"      # 监听 BestIPs_v4 文件的更新
+      - "BestIPs_v6"      # 监听 BestIPs_v6 文件的更新
       - "BestProxyIPs"  # 监听 BestProxyIPs 文件的更新
   workflow_dispatch:             # 支持手动触发
 

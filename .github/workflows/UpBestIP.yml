@@ -1,93 +1,43 @@
-name: Update Best IPs
+name: Auto Update Best IPs
 
-# 触发器：手动触发 + 定时（每小时一次）
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 * * * *'
+    - cron: "0 * * * *"  # 每小时运行一次
 
 permissions:
   contents: write
 
 jobs:
-  update-best-ips:
+  update:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fetch IP lists from API
-        # 使用 separate requests 保证稳定性
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
         run: |
-          set -euo pipefail
+          python -m pip install --upgrade pip requests
 
-          API_BASE="https://ipdb.api.030101.xyz/"
-
-          echo "Fetching cfv4..."
-          curl -s --fail "${API_BASE}?type=cfv4" -o /tmp/cfv4.raw || (echo "Failed to fetch cfv4" && exit 1)
-
-          echo "Fetching cfv6..."
-          curl -s --fail "${API_BASE}?type=cfv6" -o /tmp/cfv6.raw || (echo "Failed to fetch cfv6" && exit 1)
-
-          echo "Fetching proxy..."
-          curl -s --fail "${API_BASE}?type=proxy" -o /tmp/proxy.raw || (echo "Failed to fetch proxy" && exit 1)
-
-      - name: Normalize outputs and write target files
-        # 兼容 JSON 或纯文本输出：使用 python 做简单解析
-        run: |
-          set -euo pipefail
-
-          python3 - <<'PY'
-import json, sys, pathlib
-
-def normalize(in_path, out_path):
-    txt = open(in_path, 'rb').read().decode('utf-8', errors='replace').strip()
-    # 如果是 json 数组 --> 提取元素并每行写出
-    try:
-        parsed = json.loads(txt)
-        if isinstance(parsed, list):
-            out = "\n".join(str(x).strip() for x in parsed if str(x).strip())
-        elif isinstance(parsed, dict):
-            # 如果是 dict，尝试查找常见字段
-            # 优先使用 'data' 或 'ips' 字段
-            for k in ('data','ips','list','result'):
-                if k in parsed:
-                    val = parsed[k]
-                    if isinstance(val, list):
-                        out = "\n".join(str(x).strip() for x in val if str(x).strip())
-                        break
-            else:
-                out = json.dumps(parsed, ensure_ascii=False)
-        else:
-            out = str(parsed)
-    except Exception:
-        # 不是 JSON，直接把文本按行清洗
-        lines = [line.strip() for line in txt.splitlines() if line.strip()]
-        out = "\n".join(lines)
-
-    # 写文件（覆盖）
-    p = pathlib.Path(out_path)
-    p.write_text(out + ("\n" if out and not out.endswith("\n") else ""), encoding='utf-8')
-    print(f"Wrote {len(out.splitlines())} lines to {out_path}")
-
-normalize("/tmp/cfv4.raw", "BestIPs_v4")
-normalize("/tmp/cfv6.raw", "BestIPs_v6")
-normalize("/tmp/proxy.raw", "BestProxyIPs")
-PY
+      - name: Run update script
+        run: python .github/workflows/update.py
 
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add BestIPs_v4 BestIPs_v6 BestProxyIPs || true
-
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Auto-update BestIPs_v4/v6 and BestProxyIPs [ci skip]"
+            git commit -m "Auto-update BestIPs (v4/v6/proxy)"
             git push
           fi

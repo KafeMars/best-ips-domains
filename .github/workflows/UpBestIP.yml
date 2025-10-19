@@ -1,4 +1,4 @@
-          name: Auto Update Cloudflare Best IPs
+name: Auto Update Cloudflare Best IPs
 
 # 触发器：手动触发 + 定时触发（每小时一次）
 on:

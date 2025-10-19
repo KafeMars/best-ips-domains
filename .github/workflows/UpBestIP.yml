@@ -30,7 +30,7 @@ jobs:
 
       # 运行 Cloudflare 更新脚本
       - name: 更新 Cloudflare DNS
-        run: python UpBestIP.py
+        run: python .github/workflows/UpBestIP.py
         env:
           CF_TOKENS: ${{ secrets.CF_TOKENS }}
 

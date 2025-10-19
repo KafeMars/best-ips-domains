@@ -1,48 +1,107 @@
-#!/usr/bin/env python3
-import requests
-import json
 import os
+import requests
 
-def fetch_and_save(ip_type, filename):
-    """从 API 拉取指定类型的优选 IP 并写入文件"""
-    url = f"https://ipdb.api.030101.xyz/?type={ip_type}"
-    print(f"Fetching {ip_type} from {url} ...")
+# ------------------------- 配置区 -------------------------
+cf_tokens_str = os.getenv("CF_TOKENS", "").strip()
+if not cf_tokens_str:
+    raise Exception("环境变量 CF_TOKENS 未设置或为空")
+api_tokens = [token.strip() for token in cf_tokens_str.split(",") if token.strip()]
 
-    try:
-        resp = requests.get(url, timeout=20)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"[Error] 请求 {ip_type} 失败: {e}")
-        return
+# 子域名与对应的 IP 列表 URL 配置
+subdomain_configs = {
+    "bestcf": {
+        "v4": "https://raw.githubusercontent.com/divericks/best-ips-domains/main/BestIPs_v4",
+        "v6": "https://raw.githubusercontent.com/divericks/best-ips-domains/main/BestIPs_v6"
+    },
+    "bestproxy": {
+        "v4": "https://raw.githubusercontent.com/divericks/best-ips-domains/main/BestProxyIPs"
+    }
+}
+# -----------------------------------------------------------
 
-    text = resp.text.strip()
-    # 尝试解析 JSON
-    try:
-        data = json.loads(text)
-        if isinstance(data, dict):
-            for key in ("data", "ips", "list", "result"):
-                if key in data:
-                    data = data[key]
-                    break
-        if isinstance(data, list):
-            output = "\n".join(str(i).strip() for i in data if str(i).strip())
-        else:
-            output = str(data)
-    except Exception:
-        # 不是 JSON，直接写原始文本
-        output = "\n".join(
-            line.strip() for line in text.splitlines() if line.strip()
-        )
+dns_record_map = {
+    "v4": "A",
+    "v6": "AAAA"
+}
 
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(output + "\n")
-    print(f"[OK] Wrote {filename} ({len(output.splitlines())} lines)")
+def fetch_ip_list(url: str) -> list:
+    """从 URL 获取 IP 列表"""
+    response = requests.get(url, timeout=20)
+    response.raise_for_status()
+    ip_lines = [line.strip() for line in response.text.strip().splitlines() if line.strip()]
+    return ip_lines[:2]  # 只取前两行
+
+def fetch_zone_info(api_token: str) -> tuple:
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    response = requests.get("https://api.cloudflare.com/client/v4/zones", headers=headers)
+    response.raise_for_status()
+    zones = response.json().get("result", [])
+    if not zones:
+        raise Exception("未找到域区信息")
+    return zones[0]["id"], zones[0]["name"]
+
+def update_dns_record(api_token: str, zone_id: str, subdomain: str, domain: str, dns_type: str, operation: str, ip_list: list = None):
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    full_record_name = domain if subdomain == "@" else f"{subdomain}.{domain}"
+
+    if operation == "delete":
+        while True:
+            query_url = f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?type={dns_type}&name={full_record_name}"
+            response = requests.get(query_url, headers=headers)
+            response.raise_for_status()
+            records = response.json().get("result", [])
+            if not records:
+                break
+            for record in records:
+                del_url = f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record['id']}"
+                del_resp = requests.delete(del_url, headers=headers)
+                del_resp.raise_for_status()
+                print(f"删除 {subdomain} {dns_type} 记录: {record['id']}")
+    elif operation == "add" and ip_list:
+        for ip in ip_list:
+            payload = {
+                "type": dns_type,
+                "name": full_record_name,
+                "content": ip,
+                "ttl": 1,
+                "proxied": False
+            }
+            response = requests.post(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records",
+                                     json=payload, headers=headers)
+            if response.status_code == 200:
+                print(f"添加 {subdomain} {dns_type} 记录: {ip}")
+            else:
+                print(f"添加 {dns_type} 记录失败: {subdomain} IP {ip} 错误 {response.status_code} {response.text}")
 
 def main():
-    os.makedirs(".", exist_ok=True)
-    fetch_and_save("cfv4", "BestIPs_v4")
-    fetch_and_save("cfv6", "BestIPs_v6")
-    fetch_and_save("proxy", "BestProxyIPs")
+    try:
+        for idx, token in enumerate(api_tokens, start=1):
+            print("=" * 50)
+            print(f"开始处理 API Token #{idx}")
+            zone_id, domain = fetch_zone_info(token)
+            print(f"域区 ID: {zone_id} | 域名: {domain}")
+
+            for subdomain, version_urls in subdomain_configs.items():
+                for version_key, url in version_urls.items():
+                    dns_type = dns_record_map.get(version_key)
+                    if not dns_type:
+                        continue
+                    ips = fetch_ip_list(url)
+                    update_dns_record(token, zone_id, subdomain, domain, dns_type, "delete")
+                    if ips:
+                        update_dns_record(token, zone_id, subdomain, domain, dns_type, "add", ips)
+                    else:
+                        print(f"{subdomain} ({dns_type}) 未获取到 IP")
+            print(f"结束处理 API Token #{idx}")
+            print("=" * 50 + "\n")
+    except Exception as err:
+        print(f"错误: {err}")
 
 if __name__ == "__main__":
     main()

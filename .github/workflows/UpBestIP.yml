@@ -1,4 +1,4 @@
-name: 更新 UpBestIP
+name: 自动更新 BestIPs
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:  # 支持手动触发
 
 jobs:
-  UpBestIP:
+  update-bestips:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,14 +28,14 @@ jobs:
       - name: 安装依赖
         run: pip install requests
 
-      # 运行更新 Cloudflare DNS 的 Python 脚本
-      - name: 更新 BestIP
-        run: python .github/workflows/UpBestIP.py
+      # 运行 Cloudflare 更新脚本
+      - name: 更新 Cloudflare DNS
+        run: python UpBestIP.py
         env:
           CF_TOKENS: ${{ secrets.CF_TOKENS }}
 
-      # 自动 commit/push 文件变化
-      - name: 提交更新的 IP 文件（如果有变化）
+      # 自动 commit/push 更新的 IP 文件（如果有变化）
+      - name: 提交更新的 IP 文件
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -45,6 +45,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+            TIMESTAMP=$(date +'%Y-%m-%d %H:%M:%S')
             git commit -m "Auto-update Best IPs at $TIMESTAMP [ci skip]"
             git push

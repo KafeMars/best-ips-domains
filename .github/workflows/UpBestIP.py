@@ -12,25 +12,18 @@ api_tokens = [token.strip() for token in cf_tokens_str.split(",") if token.strip
 # 如果只配置了 v4 则只处理 IPv4；如果同时配置了 v4 与 v6，则分别处理
 subdomain_configs = {
     "bestcf": {
-        "v4": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestCF/bestcfv4.txt",
-        "v6": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestCF/bestcfv6.txt"
+        "v4": "https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestIPs_v4",
+        "v6": "https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestIPs_v6"
     },
     "bestproxy": {
-        "v4": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestProxy/bestproxy.txt"
+        "v4": "https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestProxyIPs"
     },
     "bestcfv4": {
-        "v4": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestCF/bestcfv4.txt"
+        "v4": "https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestIPs_v4"
     },
      "bestcfv6": {
-        "v6": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestCF/bestcfv6.txt"
+        "v6": "https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestIPs_v6"
     },     
-     "bestedg": {
-        "v4": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestEDG/bestedgv4.txt"
-    },
-    # "bestgc": {
-    #     "v4": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestGC/bestgcv4.txt",
-    #     "v6": "https://raw.githubusercontent.com/ymyuuu/IPDB/refs/heads/main/BestGC/bestgcv6.txt"
-    # },
 }
 # -----------------------------------------------------------
 

@@ -2,12 +2,14 @@ import os
 import requests
 
 # ------------------------- 配置区 -------------------------
+# 从环境变量中获取 Cloudflare API Token，可以是单个或多个（逗号分割）
 cf_tokens_str = os.getenv("CF_TOKENS", "").strip()
 if not cf_tokens_str:
     raise Exception("环境变量 CF_TOKENS 未设置或为空")
 api_tokens = [token.strip() for token in cf_tokens_str.split(",") if token.strip()]
 
 # 子域名与对应的 IP 列表 URL 配置
+# 仅使用你的 best-ips-domains 仓库
 subdomain_configs = {
     "bestcf": {
         "v4": "https://raw.githubusercontent.com/divericks/best-ips-domains/main/BestIPs_v4",
@@ -19,18 +21,20 @@ subdomain_configs = {
 }
 # -----------------------------------------------------------
 
+# DNS 记录类型映射
 dns_record_map = {
     "v4": "A",
     "v6": "AAAA"
 }
 
+# 获取指定 URL 的 IP 列表，仅返回前两行
 def fetch_ip_list(url: str) -> list:
-    """从 URL 获取 IP 列表"""
-    response = requests.get(url, timeout=20)
+    response = requests.get(url)
     response.raise_for_status()
     ip_lines = [line.strip() for line in response.text.strip().splitlines() if line.strip()]
-    return ip_lines[:2]  # 只取前两行
+    return ip_lines[:2]
 
+# 获取 Cloudflare 第一个域区的信息，返回 (zone_id, domain)
 def fetch_zone_info(api_token: str) -> tuple:
     headers = {
         "Authorization": f"Bearer {api_token}",
@@ -43,6 +47,7 @@ def fetch_zone_info(api_token: str) -> tuple:
         raise Exception("未找到域区信息")
     return zones[0]["id"], zones[0]["name"]
 
+# 更新 DNS 记录
 def update_dns_record(api_token: str, zone_id: str, subdomain: str, domain: str, dns_type: str, operation: str, ip_list: list = None):
     headers = {
         "Authorization": f"Bearer {api_token}",

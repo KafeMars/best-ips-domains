@@ -1,4 +1,4 @@
-name: 自动更新 BestIPs
+name: 自动更新 BestIPs（增强版）
 
 on:
   push:
@@ -14,27 +14,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 检出仓库代码
+      # 1️⃣ 检出仓库代码
       - name: 检出代码
         uses: actions/checkout@v4
 
-      # 设置 Python 环境
+      # 2️⃣ 设置 Python 环境
       - name: 设置 Python 环境
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      # 安装依赖
+      # 3️⃣ 安装依赖
       - name: 安装依赖
         run: pip install requests
 
-      # 运行 Cloudflare 更新脚本
+      # 4️⃣ 运行 Cloudflare 更新脚本（打印添加和删除的 IP）
       - name: 更新 Cloudflare DNS
         run: python .github/workflows/UpBestIP.py
         env:
           CF_TOKENS: ${{ secrets.CF_TOKENS }}
 
-      # 自动 commit/push 更新的 IP 文件（如果有变化）
+      # 5️⃣ 自动 commit/push 更新的 IP 文件（仅在文件有变化时）
       - name: 提交更新的 IP 文件
         run: |
           git config user.name "github-actions[bot]"
@@ -48,3 +48,10 @@ jobs:
             TIMESTAMP=$(date +'%Y-%m-%d %H:%M:%S')
             git commit -m "Auto-update Best IPs at $TIMESTAMP [ci skip]"
             git push
+
+      # 6️⃣ 可选：打印本次提交包含的文件列表
+      - name: 打印本次提交文件
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          echo "本次提交的文件列表："
+          git diff --name-only HEAD~1 HEAD

@@ -1,37 +1,41 @@
-name: Auto Update Cloudflare Best IPs
+name: 更新 UpBestIP
 
 on:
-  workflow_dispatch: {}
-  schedule:
-    - cron: '0 * * * *'  # 每小时触发
-
-permissions:
-  contents: write
+  push:
+    branches: [ main ]
+    paths:
+      - "BestIPs_v4"
+      - "BestIPs_v6"
+      - "BestProxyIPs"
+  workflow_dispatch:  # 支持手动触发
 
 jobs:
-  update-cf-ips:
+  UpBestIP:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # 检出仓库代码
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      # 设置 Python 环境
+      - name: 设置 Python 环境
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
+      # 安装依赖
+      - name: 安装依赖
+        run: pip install requests
 
-      - name: Run Cloudflare update script
+      # 运行更新 Cloudflare DNS 的 Python 脚本
+      - name: 更新 BestIP
+        run: python .github/workflows/UpBestIP.py
         env:
           CF_TOKENS: ${{ secrets.CF_TOKENS }}
-        run: python .github/workflows/UpBestIP.py
 
-      - name: Commit updated IP lists if changed
+      # 自动 commit/push 文件变化
+      - name: 提交更新的 IP 文件（如果有变化）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

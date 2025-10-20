@@ -1,0 +1,37 @@
+name: Auto Update Best IPs
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 每小时运行一次
+  workflow_dispatch:  # 支持手动触发
+  # 在这里添加其他触发事件，如 PR, push 等
+
+jobs:
+  update-ips:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+    
+    - name: Get content from Cloudflare URL
+      run: |
+        curl -o current_content.txt https://cf.090227.xyz/CloudFlareYes
+    
+    - name: Compare content and update repository
+      run: |
+        if ! cmp -s current_content.txt path/to/BestIPs; then
+          echo "Content changed. Updating repository..."
+          cp current_content.txt path/to/BestIPs
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add path/to/BestIPs
+          git commit -m "Auto-update BestIPs"
+          git push
+        else
+          echo "No changes detected. Skipping update."
+        fi
+
+    - name: Clean up
+      run: |
+        rm current_content.txt

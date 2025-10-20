@@ -24,7 +24,7 @@ jobs:
           awk -F'#' '{print $1}' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
           head -n 10 | \
-          sed 's/$/:8843/' > new_BestIPs.txt
+          sed 's/$/:8443/' > new_BestIPs.txt
 
       - name: Check for content changes
         id: check

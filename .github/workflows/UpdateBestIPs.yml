@@ -3,7 +3,7 @@ name: Update BestIPs
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Runs every hour at minute 0 (aligned for CST, UTC+8)
+    - cron: '*/30 * * * *'  # Runs every 30 minutes
   workflow_dispatch:  # Allows manual triggering
 
 permissions:

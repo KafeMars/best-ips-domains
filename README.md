@@ -1,4 +1,4 @@
-优选IP：
+优选IP（Update regularly）：
 
 https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestIPs
 

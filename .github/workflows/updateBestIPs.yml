@@ -20,14 +20,14 @@ jobs:
     
     - name: Compare content and update repository
       run: |
-        if ! cmp -s current_content.txt path/to/BestIPs; then
+        if ! cmp -s current_content.txt BestIPs; then
           echo "Content changed. Updating repository..."
           cp current_content.txt BestIPs
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add BestIPs
           git commit -m "Auto-update BestIPs"
-          git push
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/divericks/best-ips-domains.git
         else
           echo "No changes detected. Skipping update."
         fi

@@ -20,7 +20,7 @@ jobs:
 
       - name: Fetch and process content
         run: |
-          curl -s https://www.wetest.vip/page/cloudfront/address_v4.html | \
+          curl -s https://www.wetest.vip/page/cloudflare/address_v4.html | \
           awk -F'#' '{print $1}' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
           head -n 10 | \

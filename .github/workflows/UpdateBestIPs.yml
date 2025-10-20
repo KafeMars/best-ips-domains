@@ -1,4 +1,4 @@
-name: Update BestIPs from External Source
+name: Update BestIPs
 
 on:
   schedule:
@@ -35,7 +35,6 @@ jobs:
         run: |
           mv new_BestIPs.txt BestIPs
           git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
           git add BestIPs
           git commit -m "Automated update: Sync BestIPs from external source"
           git push origin main  # Assuming your default branch is 'main'; change if needed

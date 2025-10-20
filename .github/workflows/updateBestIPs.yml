@@ -4,7 +4,6 @@ on:
   schedule:
     - cron: '0 * * * *'  # 每小时运行一次
   workflow_dispatch:  # 支持手动触发
-  # 在这里添加其他触发事件，如 PR, push 等
 
 jobs:
   update-ips:
@@ -27,7 +26,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add BestIPs
           git commit -m "Auto-update BestIPs"
-          git push https://x-access-token:${{ secrets.UpdateBestIPs_TOKEN }}@github.com/divericks/best-ips-domains.git
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/divericks/best-ips-domains.git
         else
           echo "No changes detected. Skipping update."
         fi

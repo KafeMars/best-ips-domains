@@ -1,6 +1,6 @@
 优选IP：
 
-https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestIPs_v4
+https://raw.githubusercontent.com/divericks/best-ips-domains/refs/heads/main/BestIPs
 
 优选域名Domains：
 

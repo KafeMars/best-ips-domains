@@ -2,7 +2,7 @@ name: Update BestIPs from External Source
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Runs every 6 hours; adjust as needed
+    - cron: '0 * * * *'  # Runs every hour at minute 0
   workflow_dispatch:  # Allows manual triggering
 
 jobs:

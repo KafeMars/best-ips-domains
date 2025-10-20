@@ -1,0 +1,44 @@
+name: Update BestIPs
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour at minute 0
+  workflow_dispatch:  # Allows manual triggering
+
+permissions:
+  contents: write  # Grants write access for repository contents
+
+jobs:
+  sync-bestips:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Fetch latest content
+        run: curl -s https://cf.090227.xyz/CloudFlareYes -o new_BestIPs.txt
+
+      - name: Check for content changes
+        id: check
+        run: |
+          if ! cmp -s new_BestIPs.txt BestIPs; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update and commit changes
+        if: steps.check.outputs.changes == 'true'
+        run: |
+          mv new_BestIPs.txt BestIPs
+          git config user.name 'GitHub Actions'
+          git config user.email 'actions@github.com'
+          git add BestIPs
+          git commit -m "Automated update: Sync BestIPs from external source"
+          git push origin main
+
+      - name: Clean up
+        if: always()
+        run: rm -f new_BestIPs.txt

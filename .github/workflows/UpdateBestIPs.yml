@@ -1,5 +1,6 @@
 name: Update BestIPs
 
+
 on:
   schedule:
     - cron: '0 * * * *'  # Runs every hour at minute 0 (aligned for CST, UTC+8)
@@ -17,8 +18,11 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
-      - name: Fetch latest content
-        run: curl -s https://cf.090227.xyz/CloudFlareYes -o new_BestIPs.txt
+      - name: Fetch and process latest content
+        run: |
+          curl -s https://cf.090227.xyz/CloudFlareYes | \
+          head -n 10 | \
+          sed 's/^\s*\(.*\)\s*$/\1:8843/' > new_BestIPs.txt
 
       - name: Check for content changes
         id: check
@@ -36,7 +40,7 @@ jobs:
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git add BestIPs
-          git commit -m "Automated update: Sync BestIPs from external source"
+          git commit -m "Automated update: Sync top 10 IPs with :8843 format"
           git push origin main
 
       - name: Clean up

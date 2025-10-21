@@ -21,7 +21,7 @@ jobs:
           curl -s -f --connect-timeout 10 --retry 2 'https://ipdb.api.030101.xyz/?type=bestproxy' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
           sort -u | \
-          sed 's/$/:443/' > temp_ips.txt || {
+          sed 's/$/' > temp_ips.txt || {
             echo "错误：无法获取或提取 IP 地址"
             exit 1
           }

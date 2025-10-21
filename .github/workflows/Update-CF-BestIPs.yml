@@ -1,47 +1,51 @@
 name: Update CF-BestIPs
-
 on:
   schedule:
-    - cron: "0 * * * *"  # 每小时检查一次
-  workflow_dispatch:  # 允许手动触发
+    - cron: '*/10 * * * *'  # Runs every 10 minutes
+  workflow_dispatch: # Manual trigger
 
 jobs:
-  update_best_ips:
+  update-ips:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get the full history of the repository
 
-      - name: Install dependencies
+      - name: Fetch and update IPv4 addresses
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl jq
+          set -e
+          # Fetch the Cloudflare IP list from the API
+          curl -s -f --connect-timeout 10 --retry 2 'https://api.uouin.com/cloudflare.html' | \
+          grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
+          sort -u > temp_ips.txt || {
+            echo "Error: Unable to fetch or extract IP addresses"
+            exit 1
+          }
 
-      - name: Fetch CF-BestIPs from GitHub
-        run: |
-          curl -o CF-BestIPs https://raw.githubusercontent.com/kafemars/best-ips-domains/main/CF-BestIPs
+          # Check if temp_ips.txt is empty
+          [ -s temp_ips.txt ] || { echo "Error: IP list is empty"; exit 1; }
 
-      - name: Fetch IPv4 list from Uouin API
-        run: |
-          curl -o uouin_ipv4_list.html https://api.uouin.com/cloudflare.html
-          # 提取 IPv4 地址，并格式化为 ip:8443 格式
-          ipv4_list=$(grep -oP '(\d+\.\d+\.\d+\.\d+)' uouin_ipv4_list.html | sort | uniq | awk '{print $1":8443"}')
+          # Clear the CF-BestIPs file
+          > CF-BestIPs  
+          # Process each IP and add port
+          while IFS= read -r ip; do
+            echo "${ip}:8443" >> CF-BestIPs
+          done < temp_ips.txt
 
-      - name: Compare and update CF-BestIPs if needed
-        run: |
-          # 获取当前的CF-BestIPs内容
-          current_ips=$(cat CF-BestIPs)
+          # Remove temporary file
+          rm temp_ips.txt
 
-          # 比较现有CF-BestIPs和Uouin API的IPv4列表
-          if [ "$ipv4_list" != "$current_ips" ]; then
-            # 如果不同，更新 CF-BestIPs 文件内容
-            echo "$ipv4_list" > CF-BestIPs
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add CF-BestIPs
-            git commit -m "Update CF-BestIPs with new IP list"
-            git push
-          else
-            echo "No changes needed."
-          fi
+          # Check if CF-BestIPs is empty
+          [ -s CF-BestIPs ] || { echo "Error: IP list is empty"; exit 1; }
+
+          # Commit the update to the repository
+          git config user.name 'GitHub Actions'
+          git config user.email 'actions@github.com'
+          git add CF-BestIPs
+          git commit -m "Automated update of CF-BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
+          git pull --rebase origin main || { echo "Error: git pull --rebase failed"; exit 1; }
+          git push origin main || { echo "Error: git push failed"; exit 1; }
+          echo "Successfully updated CF-BestIPs"
+        shell: /usr/bin/bash -e {0}

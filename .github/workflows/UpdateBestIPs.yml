@@ -42,7 +42,7 @@ jobs:
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git add BestIPs
-          git commit -m "Automated update: Sync top 10 IPs with port 8843"
+          git commit -m "The BestIP has been updated."
           git push origin main
 
       - name: Clean up

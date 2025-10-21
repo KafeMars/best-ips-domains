@@ -3,7 +3,7 @@ name: Update BestProxyIPs
 on:
   schedule:
     - cron: '0,30 * * * *' # 每30分钟运行一次（在第0分钟和第30分钟）
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   update-ips:
@@ -41,4 +41,4 @@ jobs:
           git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
           git push origin main || { echo "错误：git push 失败"; exit 1; }
           echo "成功更新 BestProxyIPs"
-        shell: /usr/bin/bash -e {0}noreply.github.com'
+        shell: bash

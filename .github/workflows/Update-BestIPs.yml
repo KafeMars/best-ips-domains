@@ -1,4 +1,4 @@
-name: Update Best IPs
+name: Update BestIPs
 on:
   schedule:
     - cron: '*/15 * * * *' # 每15分钟运行一次，可根据新链接更新频率调整

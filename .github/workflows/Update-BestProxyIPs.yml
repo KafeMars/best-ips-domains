@@ -42,6 +42,3 @@ jobs:
           git push origin main || { echo "错误：git push 失败"; exit 1; }
           echo "成功更新 BestProxyIPs"
         shell: /usr/bin/bash -e {0}noreply.github.com'
-          git add BestProxyIPs
-          git commit -m "Update BestProxyIPs with latest IPs" || echo "No changes to commit"
-          git push

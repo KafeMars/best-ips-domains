@@ -17,7 +17,7 @@ jobs:
       - name: 获取并更新 IP 地址
         run: |
           set -e
-          # 获取网页内容，等待5秒以确保加载完成，然后提取所有 IPv4 地址，去重但保留原始顺序
+          # 获取网页内容，等待15秒以确保加载完成，然后提取所有 IPv4 地址，去重但保留原始顺序
           curl -s -f --connect-timeout 10 --retry 2 'https://api.uouin.com/cloudflare.html' | \
           { sleep 15; cat; } | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \

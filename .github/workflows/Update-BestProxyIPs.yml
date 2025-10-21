@@ -2,7 +2,7 @@ name: Update BestProxyIPs
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Run every 6 hours
+    - cron: '0 */1 * * *'  # Run every 1 hours
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
 
       - name: Fetch data from URL
         run: |
-          curl -s "https://sigma.wormhole.cv/US.CMLiussss.net" -o raw_data.txt
+          curl -s "https://ipdb.030101.xyz/bestproxy/" -o raw_data.txt
 
       - name: Extract IPs with latency
         run: |

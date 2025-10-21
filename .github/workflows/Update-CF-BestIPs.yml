@@ -19,7 +19,8 @@ jobs:
           # Fetch the Cloudflare IP list from the API
           curl -s -f --connect-timeout 10 --retry 2 'https://api.uouin.com/cloudflare.html' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
-          sort -u > temp_ips.txt || {
+          # Sort the IPs while ensuring uniqueness and preserving the order from the input
+          awk '!seen[$0]++' > temp_ips.txt || {
             echo "Error: Unable to fetch or extract IP addresses"
             exit 1
           }
@@ -27,9 +28,8 @@ jobs:
           # Check if temp_ips.txt is empty
           [ -s temp_ips.txt ] || { echo "Error: IP list is empty"; exit 1; }
 
-          # Clear the CF-BestIPs file
-          > CF-BestIPs  
-          # Process each IP and add port
+          # Clear the CF-BestIPs file and write sorted and unique IPs with port
+          > CF-BestIPs
           while IFS= read -r ip; do
             echo "${ip}:8443" >> CF-BestIPs
           done < temp_ips.txt

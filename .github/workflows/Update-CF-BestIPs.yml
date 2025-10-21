@@ -22,8 +22,8 @@ jobs:
         run: |
           set -e
           
-          # 使用 Puppeteer 监听页面并提取 IP 地址
-          node -e "
+          # 将 JavaScript 脚本写入文件
+          echo "
           const puppeteer = require('puppeteer');
 
           async function getIPs() {
@@ -34,7 +34,7 @@ jobs:
             // 等待页面中 IP 地址加载
             await page.waitForSelector('pre', { timeout: 30000 });
 
-            // 获取页面内容
+            // 正确使用 $eval 来获取 pre 标签的内容
             const content = await page.$eval('pre', el => el.innerText);
             
             const ips = content.match(/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/g);
@@ -56,7 +56,10 @@ jobs:
             console.error('错误:', e);
             process.exit(1);
           });
-          "
+          " > get_ips.js
+
+          # 运行该脚本
+          node get_ips.js
 
           # 提交更新
           git config user.name 'GitHub Actions'

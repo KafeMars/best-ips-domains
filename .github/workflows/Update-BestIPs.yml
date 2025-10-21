@@ -37,7 +37,7 @@ jobs:
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git add BestIPs
-          git commit -m "自动更新 BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')" || true
+          git commit -m "自动更新 BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
           git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
           git push origin main || { echo "错误：git push 失败"; exit 1; }
           echo "成功更新 BestIPs"

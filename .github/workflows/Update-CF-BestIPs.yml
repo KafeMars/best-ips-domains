@@ -17,22 +17,39 @@ jobs:
       - name: 获取并更新 IP 地址
         run: |
           set -e
-          # 获取网页内容，等待15秒以确保加载完成，然后提取所有 IPv4 地址，去重但保留原始顺序
-          curl -s -f --connect-timeout 10 --retry 2 'https://api.uouin.com/cloudflare.html' | \
-          { sleep 15; cat; } | \
-          grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
+          
+          # 获取页面并保存到临时文件
+          curl -s -f --connect-timeout 10 --retry 2 'https://api.uouin.com/cloudflare.html' > temp_page.html || {
+            echo "错误：无法获取页面"
+            exit 1
+          }
+
+          # 等待直到页面内容有变化（最多10次，每次5秒）
+          last_content=""
+          for i in {1..10}; do
+            current_content=$(cat temp_page.html)
+            if [[ "$current_content" != "$last_content" ]]; then
+              echo "页面内容已更新"
+              break
+            fi
+            echo "等待页面更新..."
+            sleep 5
+            last_content="$current_content"
+          done
+
+          # 提取 IP 地址
+          grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' temp_page.html | \
           awk '!seen[$0]++' > temp_ips.txt || {
-            echo "错误：无法获取或提取 IP 地址"
+            echo "错误：无法提取 IP 地址"
             exit 1
           }
 
           # 检查 temp_ips.txt 是否为空
           [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
 
-          # 处理每个 IP：添加端口
+          # 处理每个 IP 地址，添加端口
           > CF-BestIPs  # 清空 CF-BestIPs 文件
           while IFS= read -r ip; do
-            # 添加端口
             ip_port="${ip}:8443"
             echo "${ip_port}" >> CF-BestIPs
           done < temp_ips.txt

@@ -39,7 +39,7 @@ jobs:
             
             # 如果查询成功且国家代码非空，则添加 #国家代码 IP
             if [ -n "$country_code" ] && [ "$country_code" != "N/A" ]; then
-              echo "${ip_port} #${country_code}${ip}" >> BestIPs
+              echo "${ip_port} #${country_code}" >> BestIPs
             else
               echo "${ip_port}" >> BestIPs
             fi

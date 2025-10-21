@@ -1,3 +1,10 @@
+name: Update CF-BestIPs
+
+on:
+  schedule:
+    - cron: "0 * * * *"  # 每小时检查一次
+  workflow_dispatch:  # 允许手动触发
+
 jobs:
   update_best_ips:
     runs-on: ubuntu-latest

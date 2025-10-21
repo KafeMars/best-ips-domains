@@ -18,13 +18,13 @@ jobs:
         run: |
           set -e
           
-          # 获取页面并保存到临时文件
-          curl -s -f --connect-timeout 10 --retry 2 'https://api.uouin.com/cloudflare.html' > temp_page.html || {
+          # 使用 wget 下载网页内容并进行重试
+          wget --quiet --waitretry=10 --retry-connrefused --timeout=30 --tries=10 -O temp_page.html 'https://api.uouin.com/cloudflare.html' || {
             echo "错误：无法获取页面"
             exit 1
           }
 
-          # 等待直到页面内容有变化（最多10次，每次5秒）
+          # 使用一个较长时间的检查机制，确保 IP 列表更新
           last_content=""
           for i in {1..10}; do
             current_content=$(cat temp_page.html)
@@ -33,7 +33,7 @@ jobs:
               break
             fi
             echo "等待页面更新..."
-            sleep 5
+            sleep 10
             last_content="$current_content"
           done
 

@@ -1,0 +1,39 @@
+name: Update BestProxyIPs
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-ips:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch data from URL
+        run: |
+          curl -s "https://sigma.wormhole.cv/US.CMLiussss.net" -o raw_data.txt
+
+      - name: Extract IPs with latency
+        run: |
+          # Assuming the content has lines like "IP latency" or "IP: delay_number ms"
+          # Adjust the grep pattern based on actual format. Here, example: grep for lines with IP and number
+          grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}.*[0-9]+' raw_data.txt | awk '{print $1}' > temp_ips.txt
+          # If format is different, use sed or other tools to parse
+          # For example, if it's JSON, use jq: jq '.responseTime | select(. != "-1") | .proxyIP' raw_data.txt > temp_ips.txt
+
+      - name: Replace content in BestProxyIPs
+        run: |
+          cp temp_ips.txt BestProxyIPs  # Assuming BestProxyIPs is in the root; adjust path if needed
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add BestProxyIPs
+          git commit -m "Update BestProxyIPs with latest IPs" || echo "No changes to commit"
+          git push

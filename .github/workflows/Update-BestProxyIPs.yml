@@ -2,7 +2,7 @@ name: Update BestProxyIPs
 
 on:
   schedule:
-    - cron: '0 */1 * * *'  # Run every 1 hours
+    - cron: '0,30 * * * *' # 每30分钟运行一次（在第0分钟和第30分钟）
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
         run: |
           set -e
           # 获取网页内容并提取 IPv4 地址
-          curl -s -f --connect-timeout 10 --retry 2 'https://ipdb.030101.xyz/bestproxy/' | \
+          curl -s -f --connect-timeout 10 --retry 2 'https://ipdb.api.030101.xyz/?type=bestproxy' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
           sort -u | \
           sed 's/$/:443/' > temp_ips.txt || {

@@ -28,21 +28,12 @@ jobs:
           # 检查 temp_ips.txt 是否为空
           [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
 
-          # 处理每个 IP：添加端口并查询国家代码
+          # 处理每个 IP：添加端口
           > CF-BestIPs  # 清空 CF-BestIPs 文件
           while IFS= read -r ip; do
             # 添加端口
             ip_port="${ip}:8443"
-            
-            # 查询国家代码（使用 ip-api.com 免费 API）
-            country_code=$(curl -s --connect-timeout 5 --retry 1 "http://ip-api.com/json/${ip}?fields=countryCode" | grep -o '"countryCode":"[^"]*"' | cut -d'"' -f4 || echo "")
-            
-            # 如果查询成功且国家代码非空，则添加 #国家代码 IP
-            if [ -n "$country_code" ] && [ "$country_code" != "N/A" ]; then
-              echo "${ip_port} 【${country_code}】 ${ip}" >> CF-BestIPs
-            else
-              echo "${ip_port}" >> CF-BestIPs
-            fi
+            echo "${ip_port}" >> CF-BestIPs
           done < temp_ips.txt
 
           # 移除临时文件

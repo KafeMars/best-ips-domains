@@ -18,22 +18,18 @@ jobs:
           set -e
           # 获取网页内容并提取所有 IPv4 地址
           # 若需更换链接，修改以下 URL 即可，例如：'https://new.example.com/ip-list'
-          curl -s -f --connect-timeout 10 --retry 2 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4' | \
+          curl -s -f --connect-timeout 10 --retry 2 'https://www.wetest.vip/page/cloudflare/address_v4.html' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
           sort -u | \
-          sed 's/$/:8443/' > new_BestIPs.txt || {
+          sed 's/$/:8443/' > BestIPs || {
             echo "错误：无法获取或提取 IP 地址"
             exit 1
           }
 
-          # 检查 new_BestIPs.txt 是否为空
-          [ -s new_BestIPs.txt ] || { echo "错误：IP 列表为空"; exit 1; }
+          # 检查 BestIPs 是否为空
+          [ -s BestIPs ] || { echo "错误：IP 列表为空"; exit 1; }
 
-          # 检查是否有变化
-          [ -f BestIPs ] && cmp -s new_BestIPs.txt BestIPs && { echo "IP 地址无变化"; rm new_BestIPs.txt; exit 0; }
-
-          # 更新文件并提交
-          mv new_BestIPs.txt BestIPs || { echo "错误：无法更新 BestIPs 文件"; exit 1; }
+          # 提交更新
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git add BestIPs

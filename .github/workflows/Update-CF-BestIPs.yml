@@ -2,7 +2,7 @@ name: Update CF-BestIPs
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # 每15分钟检查一次
+    - cron: '0,15,30,45 * * * *' # 每个整点开始的第0、15、30、45分钟运行
   workflow_dispatch: # 支持手动触发
 
 jobs:

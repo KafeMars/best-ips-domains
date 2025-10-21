@@ -14,30 +14,44 @@ jobs:
         with:
           fetch-depth: 0 # 获取完整历史记录
 
-      - name: 获取并检查 IP 地址变化
+      - name: 获取并更新 IP 地址
         run: |
           set -e
-          # 获取网页内容并提取最多 10 个 IPv4 地址
+          # 获取网页内容并提取所有 IPv4 地址
           curl -s -f --connect-timeout 10 --retry 2 'https://ipdb.api.030101.xyz/?type=bestcf' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
-          sort -u | head -n 10 | \
-          sed 's/$/:8443/' > new_CF-BestIPs.txt || {
+          sort -u > temp_ips.txt || {
             echo "错误：无法获取或提取 IP 地址"
             exit 1
           }
 
-          # 检查 new_CF-BestIPs.txt 是否为空
-          [ -s new_CF-BestIPs.txt ] || { echo "错误：IP 列表为空"; exit 1; }
+          # 检查 temp_ips.txt 是否为空
+          [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
 
-          # 检查是否有变化
-          if [ -f CF-BestIPs ] && cmp -s new_CF-BestIPs.txt CF-BestIPs; then
-            echo "IP 地址无变化，无需更新"
-            rm new_CF-BestIPs.txt
-            exit 0
-          fi
+          # 处理每个 IP：添加端口并查询国家代码
+          > CF-BestIPs  # 清空 CF-BestIPs 文件
+          while IFS= read -r ip; do
+            # 添加端口
+            ip_port="${ip}:8443"
+            
+            # 查询国家代码（使用 ip-api.com 免费 API）
+            country_code=$(curl -s --connect-timeout 5 --retry 1 "http://ip-api.com/json/${ip}?fields=countryCode" | grep -o '"countryCode":"[^"]*"' | cut -d'"' -f4 || echo "")
+            
+            # 如果查询成功且国家代码非空，则添加 #国家代码 IP
+            if [ -n "$country_code" ] && [ "$country_code" != "N/A" ]; then
+              echo "${ip_port} 【${country_code}】 ${ip}" >> CF-BestIPs
+            else
+              echo "${ip_port}" >> CF-BestIPs
+            fi
+          done < temp_ips.txt
 
-          # 更新文件并提交
-          mv new_CF-BestIPs.txt CF-BestIPs || { echo "错误：无法更新 CF-BestIPs 文件"; exit 1; }
+          # 移除临时文件
+          rm temp_ips.txt
+
+          # 检查 CF-BestIPs 是否为空
+          [ -s CF-BestIPs ] || { echo "错误：IP 列表为空"; exit 1; }
+
+          # 提交更新
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git add CF-BestIPs

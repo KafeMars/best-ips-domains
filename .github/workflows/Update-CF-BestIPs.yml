@@ -3,7 +3,7 @@ name: Update CF-BestIPs
 on:
   schedule:
     - cron: '*/15 * * * *'  # 每15分钟运行一次
-  workflow_dispatch:
+  workflow_dispatch: # 支持手动触发
 
 jobs:
   update-ips:
@@ -149,23 +149,4 @@ main();
 JS
 
           # 运行脚本
-          node get_ips.js
-
-      - name: 提交并推送（仅在文件变更时）
-        run: |
-          set -e
-          git config user.name 'GitHub Actions'
-          git config user.email 'actions@github.com'
-
-          # 如果有变动则提交并推送
-          git add CF-BestIPs || true
-          if git diff --staged --quiet; then
-            echo "没有检测到变更，跳过提交。"
-          else
-            TIMESTAMP=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
-            git commit -m "自动更新 CF-BestIPs ${TIMESTAMP}" || true
-            git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
-            git push origin main || { echo "错误：git push 失败"; exit 1; }
-            echo "已提交并推送更新。"
-          fi
-        shell: /usr/bin/bash -e {0}
+         

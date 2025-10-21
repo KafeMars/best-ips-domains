@@ -3,70 +3,169 @@ name: Update CF-BestIPs
 on:
   schedule:
     - cron: '*/15 * * * *'  # 每15分钟运行一次
-  workflow_dispatch: # 支持手动触发
+  workflow_dispatch:
 
 jobs:
   update-ips:
     runs-on: ubuntu-latest
     steps:
-      - name: 设置 Node.js 环境
+      - name: 检出代码库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 安装 Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
 
       - name: 安装 Puppeteer
         run: |
-          npm install puppeteer
+          npm install puppeteer --no-audit --no-fund
 
-      - name: 获取并更新 IP 地址
+      - name: 写入并运行抓取/监听脚本（Puppeteer）
         run: |
           set -e
-          
-          # 将 JavaScript 脚本写入文件
-          echo "
-          const puppeteer = require('puppeteer');
 
-          async function getIPs() {
-            const browser = await puppeteer.launch({ headless: true });
-            const page = await browser.newPage();
-            await page.goto('https://api.uouin.com/cloudflare.html', { waitUntil: 'domcontentloaded' });
+          # 将 JS 脚本写入文件，使用 heredoc 避免转义问题
+          cat > get_ips.js <<'JS'
+/**
+ * get_ips.js
+ * 说明：
+ *  - 读取仓库中现有的 CF-BestIPs（若存在），提取原始 IPv4（去掉 :8443）
+ *  - 使用 Puppeteer 打开目标页面，轮询获取页面中的 IP 列表（最多等待 timeoutSeconds）
+ *  - 若检测到与仓库中不同的 IP 列表则写入 CF-BestIPs（每行 ip:8443）
+ *  - 否则不修改文件（工作流后续通过 git diff 判断是否需要提交）
+ */
 
-            // 等待页面中 IP 地址加载
-            await page.waitForSelector('pre', { timeout: 30000 });
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
-            // 正确使用 $eval 来获取 pre 标签的内容
-            const content = await page.$eval('pre', el => el.innerText);
-            
-            const ips = content.match(/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/g);
-            if (!ips) {
-              throw new Error('无法提取 IP 地址');
-            }
-            
-            // 去重并添加端口
-            const uniqueIPs = [...new Set(ips)].map(ip => ip + ':8443');
+const TARGET_URL = 'https://api.uouin.com/cloudflare.html';
+const OUTPUT_FILE = 'CF-BestIPs';
+const timeoutSeconds = 60;       // 最长等待时间（秒），可按需调整
+const pollIntervalMs = 5000;     // 轮询间隔（毫秒）
 
-            // 将 IP 地址保存到文件
-            const fs = require('fs');
-            fs.writeFileSync('CF-BestIPs', uniqueIPs.join('\n'), 'utf8');
+function extractIPsFromText(text) {
+  if (!text) return [];
+  const m = text.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g);
+  return m ? Array.from(new Set(m)) : [];
+}
 
-            await browser.close();
-          }
+function normalize(arr) {
+  return Array.from(new Set(arr)).sort();
+}
 
-          getIPs().catch(e => {
-            console.error('错误:', e);
-            process.exit(1);
-          });
-          " > get_ips.js
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
 
-          # 运行该脚本
+async function main() {
+  // 读取旧 IP（如果存在），去掉端口
+  let oldIPs = [];
+  try {
+    if (fs.existsSync(OUTPUT_FILE)) {
+      const oldText = fs.readFileSync(OUTPUT_FILE, 'utf8');
+      oldIPs = extractIPsFromText(oldText); // 已包含端口也能匹配出 ip
+      oldIPs = normalize(oldIPs);
+    }
+  } catch (e) {
+    console.error('读取旧文件失败：', e);
+  }
+  console.log('仓库中旧 IP 列表：', oldIPs);
+
+  // 启动 puppeteer
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+  try {
+    const page = await browser.newPage();
+    // 先导航到页面（等待 DOMContentLoaded），后面轮询具体内容
+    await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+    // 轮询直到检测到 IP 列表与旧列表不同或超时
+    const start = Date.now();
+    let foundIPs = [];
+    while (true) {
+      // 尝试获取页面内文本（优先找 <pre> 或 body）
+      let text = '';
+      try {
+        // 如果页面有 <pre> 标签（很多 IP 页面会用），优先取它
+        const hasPre = await page.$('pre');
+        if (hasPre) {
+          text = await page.$eval('pre', el => el.innerText).catch(() => '');
+        }
+        if (!text) {
+          // 回退到 body 的 innerText
+          text = await page.evaluate(() => document.body ? document.body.innerText : '');
+        }
+      } catch (e) {
+        console.warn('读取页面文本失败，重试：', e.message);
+      }
+
+      foundIPs = extractIPsFromText(text);
+      foundIPs = normalize(foundIPs);
+
+      // 如果找到 IP 且与旧 IP 不同，认为页面已更新
+      if (foundIPs.length > 0 && !arraysEqual(foundIPs, oldIPs)) {
+        console.log('检测到 IP 变化，新的 IP 列表：', foundIPs);
+        break;
+      }
+
+      // 检查超时
+      if ((Date.now() - start) / 1000 > timeoutSeconds) {
+        console.log('等待超时，未检测到变化或未能获取 IP（或 IP 未变化）');
+        break;
+      }
+
+      // 继续轮询
+      await new Promise(r => setTimeout(r, pollIntervalMs));
+    }
+
+    // 如果 foundIPs 有值且与 oldIPs 不同，则写入新文件（带端口）
+    if (foundIPs.length > 0 && !arraysEqual(foundIPs, oldIPs)) {
+      const withPorts = foundIPs.map(ip => `${ip}:8443`);
+      fs.writeFileSync(OUTPUT_FILE, withPorts.join('\n') + '\n', 'utf8');
+      console.log('已写入新 CF-BestIPs，包含端口：', withPorts.length, '行');
+      process.exit(0);
+    } else {
+      console.log('未发现变化或无法获取新 IP，保持现有文件不变。');
+      process.exit(0);
+    }
+  } catch (e) {
+    console.error('抓取过程发生错误：', e);
+    await browser.close();
+    process.exit(2);
+  } finally {
+    await browser.close();
+  }
+}
+
+main();
+JS
+
+          # 运行脚本
           node get_ips.js
 
-          # 提交更新
+      - name: 提交并推送（仅在文件变更时）
+        run: |
+          set -e
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
-          git add CF-BestIPs
-          git commit -m "自动更新 CF-BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
-          git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
-          git push origin main || { echo "错误：git push 失败"; exit 1; }
-          echo "成功更新 CF-BestIPs"
+
+          # 如果有变动则提交并推送
+          git add CF-BestIPs || true
+          if git diff --staged --quiet; then
+            echo "没有检测到变更，跳过提交。"
+          else
+            TIMESTAMP=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
+            git commit -m "自动更新 CF-BestIPs ${TIMESTAMP}" || true
+            git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
+            git push origin main || { echo "错误：git push 失败"; exit 1; }
+            echo "已提交并推送更新。"
+          fi
         shell: /usr/bin/bash -e {0}

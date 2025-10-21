@@ -9,56 +9,54 @@ jobs:
   update-ips:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码库
-        uses: actions/checkout@v4
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v3
         with:
-          fetch-depth: 0 # 获取完整历史记录
+          node-version: '16'
+
+      - name: 安装 Puppeteer
+        run: |
+          npm install puppeteer
 
       - name: 获取并更新 IP 地址
         run: |
           set -e
           
-          # 使用 wget 下载网页内容并进行重试
-          wget --quiet --waitretry=10 --retry-connrefused --timeout=30 --tries=10 -O temp_page.html 'https://api.uouin.com/cloudflare.html' || {
-            echo "错误：无法获取页面"
-            exit 1
+          # 使用 Puppeteer 监听页面并提取 IP 地址
+          node -e "
+          const puppeteer = require('puppeteer');
+
+          async function getIPs() {
+            const browser = await puppeteer.launch({ headless: true });
+            const page = await browser.newPage();
+            await page.goto('https://api.uouin.com/cloudflare.html', { waitUntil: 'domcontentloaded' });
+
+            // 等待页面中 IP 地址加载
+            await page.waitForSelector('pre', { timeout: 30000 });
+
+            // 获取页面内容
+            const content = await page.$eval('pre', el => el.innerText);
+            
+            const ips = content.match(/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/g);
+            if (!ips) {
+              throw new Error('无法提取 IP 地址');
+            }
+            
+            // 去重并添加端口
+            const uniqueIPs = [...new Set(ips)].map(ip => ip + ':8443');
+
+            // 将 IP 地址保存到文件
+            const fs = require('fs');
+            fs.writeFileSync('CF-BestIPs', uniqueIPs.join('\n'), 'utf8');
+
+            await browser.close();
           }
 
-          # 使用一个较长时间的检查机制，确保 IP 列表更新
-          last_content=""
-          for i in {1..10}; do
-            current_content=$(cat temp_page.html)
-            if [[ "$current_content" != "$last_content" ]]; then
-              echo "页面内容已更新"
-              break
-            fi
-            echo "等待页面更新..."
-            sleep 10
-            last_content="$current_content"
-          done
-
-          # 提取 IP 地址
-          grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' temp_page.html | \
-          awk '!seen[$0]++' > temp_ips.txt || {
-            echo "错误：无法提取 IP 地址"
-            exit 1
-          }
-
-          # 检查 temp_ips.txt 是否为空
-          [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
-
-          # 处理每个 IP 地址，添加端口
-          > CF-BestIPs  # 清空 CF-BestIPs 文件
-          while IFS= read -r ip; do
-            ip_port="${ip}:8443"
-            echo "${ip_port}" >> CF-BestIPs
-          done < temp_ips.txt
-
-          # 移除临时文件
-          rm temp_ips.txt
-
-          # 检查 CF-BestIPs 是否为空
-          [ -s CF-BestIPs ] || { echo "错误：IP 列表为空"; exit 1; }
+          getIPs().catch(e => {
+            console.error('错误:', e);
+            process.exit(1);
+          });
+          "
 
           # 提交更新
           git config user.name 'GitHub Actions'

@@ -1,60 +1,49 @@
-name: Monitor IPs and Update CFIPS
+name: Auto Update CFIPS
 
 on:
   schedule:
     - cron: '*/15 * * * *'  # 每15分钟执行一次
-  workflow_dispatch:  # 也可以手动触发
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
-  monitor_ips:
+  update_cfips:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 允许修改文件（例如 CFIPS）
-      pull-requests: write  # 允许创建 PR
+      contents: write  # 允许直接推送修改
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-        
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl jq
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main  # 直接操作 main 分支
 
-      - name: Fetch webpage and extract IPv4 addresses
-        id: fetch_ips
+      - name: Install curl
         run: |
-          # 获取页面的 HTML 源代码
+          sudo apt-get update -y
+          sudo apt-get install -y curl
+
+      - name: Fetch and extract IPv4 addresses
+        run: |
+          # 抓取网页源代码并提取 IPv4 地址
           curl -s https://api.uouin.com/cloudflare.html | \
-          # 使用 grep 提取所有 IPv4 地址并去重
           grep -oP '\b(?:\d{1,3}\.){3}\d{1,3}\b' | \
-          sort | uniq > ips.txt
-        
-      - name: Format IP addresses with port
-        id: format_ips
-        run: |
-          # 将 IPv4 地址格式化为 ip:8443 格式
-          awk '{print $1":8443"}' ips.txt > formatted_ips.txt
+          sort -u > ips.txt
 
-      - name: Update CFIPS file in the repository
+          # 格式化为 ip:8443
+          awk '{print $1":8443"}' ips.txt > CFIPS
+
+      - name: Commit and push if changed
         run: |
-          # 创建一个新的分支来更新 CFIPS 文件
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git checkout -b update-ips
-          
-          # 将新的 IP 地址添加到 CFIPS 文件
-          echo -e "\n$(cat formatted_ips.txt)" >> CFIPS
-          
-          # 提交并推送更改
-          git add CFIPS
-          git commit -m "Update CFIPS with new IPs"
-          git push --set-upstream origin update-ips
 
-      - name: Create a pull request
-        uses: peter-evans/create-pull-request@v4
-        with:
-          title: "Update CFIPS with new IPs"
-          body: "This PR updates CFIPS with the latest IPs extracted from the webpage."
-          head: update-ips
-          base: main
+          # 判断 CFIPS 文件是否有变化
+          if git diff --quiet CFIPS; then
+            echo "✅ 没有变化，跳过提交。"
+            exit 0
+          fi
+
+          git add CFIPS
+          git commit -m "Auto update CFIPS ($(date '+%Y-%m-%d %H:%M:%S'))"
+          git push origin main

@@ -1,5 +1,7 @@
 name: Update CF-BestIPs-List
 
+name: Merge CF-BestIPs-A and CF-BestIPs-B
+
 on:
   schedule:
     - cron: '0 16-23,0-7 * * *'  # 北京时间每小时整点 (UTC+8)
@@ -22,16 +24,18 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}  # 确保推送权限
 
-      # 2. 合并并去重
+      # 2. 合并、去重、验证 IP
       - name: Merge CF-BestIPs-A and CF-BestIPs-B
         run: |
-          cat CF-BestIPs-A CF-BestIPs-B | sort | uniq > CF-BestIPs-List.new
+          echo "🔄 正在合并 CF-BestIPs-A 和 CF-BestIPs-B..."
+          cat CF-BestIPs-A CF-BestIPs-B | awk '!seen[$0]++' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' > CF-BestIPs-List.new
           if cmp -s CF-BestIPs-List.new CF-BestIPs-List; then
-            echo "无变化，跳过提交"
+            echo "✅ 无变化，跳过提交"
             rm CF-BestIPs-List.new
             exit 0
           fi
           mv CF-BestIPs-List.new CF-BestIPs-List
+          echo "✅ 合并完成，仅保留合法 IPv4 地址"
 
       # 3. 提交并推送
       - name: Update CF-BestIPs-List
@@ -39,5 +43,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add CF-BestIPs-List
-          git commit -m "Update CF-BestIPs-List with merged data"
+          git commit -m "🤖 自动更新 CF-BestIPs-List $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
           git push origin main

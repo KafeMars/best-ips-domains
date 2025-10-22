@@ -1,8 +1,6 @@
 name: Update CF-BestIPs-List
 
 on:
-  schedule:
-    - cron: '0 16-23,0-7 * * *'  # 北京时间每小时整点 (UTC+8)
   push:
     paths:
       - 'CF-BestIPs-A'  # 监听 A 文件变化

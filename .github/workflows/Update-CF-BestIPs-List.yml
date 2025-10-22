@@ -16,18 +16,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}  # 使用 PAT 确保权限
+          token: ${{ secrets.GH_TOKEN }}  # 修复：添加 token
 
       # 2. 合并并去重
       - name: Merge CF-BestIPs-A and CF-BestIPs-B
         run: |
-          cat CF-BestIPs-A CF-BestIPs-B | sort | uniq > CF-BestIPs-List.txt
-          if cmp -s CF-BestIPs-List.txt CF-BestIPs-List; then
+          cat CF-BestIPs-A CF-BestIPs-B | sort | uniq > CF-BestIPs-List.new
+          if cmp -s CF-BestIPs-List.new CF-BestIPs-List; then
             echo "无变化，跳过提交"
-            rm CF-BestIPs-List.txt
+            rm CF-BestIPs-List.new
             exit 0
           fi
-          mv CF-BestIPs-List.txt CF-BestIPs-List
+          mv CF-BestIPs-List.new CF-BestIPs-List
 
       # 3. 提交并推送
       - name: Update CF-BestIPs-List

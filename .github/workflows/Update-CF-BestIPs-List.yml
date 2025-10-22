@@ -1,7 +1,5 @@
 name: Update CF-BestIPs-List
 
-name: Merge CF-BestIPs-A and CF-BestIPs-B
-
 on:
   schedule:
     - cron: '0 16-23,0-7 * * *'  # 北京时间每小时整点 (UTC+8)

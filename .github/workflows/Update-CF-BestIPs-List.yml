@@ -24,7 +24,25 @@ jobs:
       - name: Merge CF-BestIPs-A and CF-BestIPs-B
         run: |
           echo "🔄 正在合并 CF-BestIPs-A 和 CF-BestIPs-B..."
+          # 检查文件是否存在
+          if [ ! -f CF-BestIPs-A ] || [ ! -f CF-BestIPs-B ]; then
+            echo "❌ 错误：CF-BestIPs-A 或 CF-BestIPs-B 文件不存在"
+            exit 1
+          fi
+          # 检查文件是否为空
+          if [ ! -s CF-BestIPs-A ] && [ ! -s CF-BestIPs-B ]; then
+            echo "❌ 错误：CF-BestIPs-A 和 CF-BestIPs-B 均为空"
+            exit 1
+          fi
+          # 合并、去重、验证 IPv4
           cat CF-BestIPs-A CF-BestIPs-B | awk '!seen[$0]++' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' > CF-BestIPs-List.new
+          # 检查输出是否为空
+          if [ ! -s CF-BestIPs-List.new ]; then
+            echo "❌ 错误：合并后无合法 IPv4 地址"
+            rm CF-BestIPs-List.new
+            exit 1
+          fi
+          # 比较新旧文件
           if cmp -s CF-BestIPs-List.new CF-BestIPs-List; then
             echo "✅ 无变化，跳过提交"
             rm CF-BestIPs-List.new

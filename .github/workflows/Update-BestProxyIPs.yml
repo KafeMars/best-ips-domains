@@ -2,7 +2,7 @@ name: Update BestProxyIPs
 
 on:
   schedule:
-    - cron: '0,30 * * * *' # 每30分钟运行一次（在第0分钟和第30分钟）
+    - cron: '0 * * * *'  # 每小时运行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:

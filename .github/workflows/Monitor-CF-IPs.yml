@@ -29,39 +29,27 @@ jobs:
       # 提取网页 IP 地址
       - name: Extract IP addresses from the webpage
         run: |
-          import requests
-          from bs4 import BeautifulSoup
-          import re
+          echo 'import requests' > extract_ips.py
+          echo 'from bs4 import BeautifulSoup' >> extract_ips.py
+          echo 'import re' >> extract_ips.py
+          echo '' >> extract_ips.py
+          echo 'url = "https://api.uouin.com/cloudflare.html"' >> extract_ips.py
+          echo 'response = requests.get(url)' >> extract_ips.py
+          echo 'html = response.text' >> extract_ips.py
+          echo 'soup = BeautifulSoup(html, "html.parser")' >> extract_ips.py
+          echo 'tbody = soup.find_all("tbody")' >> extract_ips.py
+          echo 'ip_addresses = set()' >> extract_ips.py
+          echo 'ip_pattern = r"\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b"' >> extract_ips.py
+          echo 'for item in tbody:' >> extract_ips.py
+          echo '    text = item.get_text()' >> extract_ips.py
+          echo '    ips = re.findall(ip_pattern, text)' >> extract_ips.py
+          echo '    ip_addresses.update(ips)' >> extract_ips.py
+          echo 'formatted_ips = [f"{ip}:8443" for ip in ip_addresses]' >> extract_ips.py
+          echo 'with open("CFIPS", "w") as f:' >> extract_ips.py
+          echo '    f.write("\\n".join(formatted_ips))' >> extract_ips.py
 
-          # 定义目标网址
-          url = "https://api.uouin.com/cloudflare.html"
-          
-          # 获取网页内容
-          response = requests.get(url)
-          html = response.text
-
-          # 使用 BeautifulSoup 解析网页
-          soup = BeautifulSoup(html, "html.parser")
-
-          # 查找 <tbody> 中的所有文本内容
-          tbody = soup.find_all('tbody')
-          
-          ip_addresses = set()  # 使用 set 来避免重复的 IP 地址
-
-          # 正则表达式匹配 IPv4 地址
-          ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
-
-          for item in tbody:
-              text = item.get_text()
-              ips = re.findall(ip_pattern, text)
-              ip_addresses.update(ips)
-
-          # 格式化 IP 地址为 ip:8443
-          formatted_ips = [f"{ip}:8443" for ip in ip_addresses]
-
-          # 将 IP 地址保存到文件中
-          with open('CFIPS', 'w') as f:
-              f.write("\n".join(formatted_ips))
+          # 执行 Python 脚本
+          python extract_ips.py
 
       # 将文件提交到 GitHub 仓库
       - name: Commit and push updated CFIPS file

@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}  # 修复 token 报错
+          token: ${{ secrets.GH_TOKEN }}  # 使用 PAT 修复 token 报错
 
       # 2. 合并并去重
       - name: Merge CF-BestIPs-A and CF-BestIPs-B

@@ -5,6 +5,8 @@ on:
     paths:
       - 'CF-BestIPs-A'  # 监听 A 文件变化
       - 'CF-BestIPs-B'  # 监听 B 文件变化
+  schedule:
+    - cron: '0 16 * * *'  # 每天的北京时间每小时整点运行，UTC时间是16:00
   workflow_dispatch:  # 允许手动触发
 
 jobs:

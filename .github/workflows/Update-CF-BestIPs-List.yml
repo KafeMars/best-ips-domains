@@ -2,58 +2,31 @@ name: Update CF-BestIPs-List
 
 on:
   schedule:
-    # 每小时整点执行（UTC 时间）
-    - cron: '0 * * * *'
-  workflow_dispatch:   # 允许手动触发
+    - cron: '0 * * * *'  # 每小时运行一次
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
-  merge-and-update:
+  merge-ips:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write   # 需要写权限提交
 
     steps:
-      # 1. 检出仓库
+      # 检出代码
       - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GH_TOKEN }}
+        uses: actions/checkout@v2
 
-      # 2. 设置 Git 身份
-      - name: Set git identity
+      # 获取 CF-BestIPs-A 和 CF-BestIPs-B 的内容并合并
+      - name: Merge CF-BestIPs-A and CF-BestIPs-B
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          curl -s https://raw.githubusercontent.com/kafemars/best-ips-domains/main/CF-BestIPs-A > CF-BestIPs-A.txt
+          curl -s https://raw.githubusercontent.com/kafemars/best-ips-domains/main/CF-BestIPs-B > CF-BestIPs-B.txt
+          cat CF-BestIPs-A.txt CF-BestIPs-B.txt | sort | uniq > CF-BestIPs-List.txt
 
-      # 3. 下载 A、B 两个文件（raw 内容）
-      - name: Download CF-BestIPs-A & B
+      # 更新到 CF-BestIPs-List 文件并推送
+      - name: Update CF-BestIPs-List
         run: |
-          curl -L -o CF-BestIPs-A.tmp \
-            https://raw.githubusercontent.com/kafemars/best-ips-domains/main/CF-BestIPs-A
-          curl -L -o CF-BestIPs-B.tmp \
-            https://raw.githubusercontent.com/kafemars/best-ips-domains/main/CF-BestIPs-B
-
-      # 4. 合并并去重（按行去重，保留原顺序）
-      - name: Merge and deduplicate
-        run: |
-          cat CF-BestIPs-A.tmp CF-BestIPs-B.tmp | \
-            sort | uniq > CF-BestIPs-List.tmp
-
-      # 5. 检查是否有变化
-      - name: Check for changes
-        id: diff
-        run: |
-          if cmp -s CF-BestIPs-List.tmp CF-BestIPs-List; then
-            echo "no_changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "no_changes=false" >> $GITHUB_OUTPUT
-            cp CF-BestIPs-List.tmp CF-BestIPs-List
-          fi
-
-      # 6. 提交并推送到仓库（仅在有变化时）
-      - name: Commit and push if changed
-        if: steps.diff.outputs.no_changes == 'false'
-        run: |
+          mv CF-BestIPs-List.txt CF-BestIPs-List
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
           git add CF-BestIPs-List
-          git commit -m "Auto update CF-BestIPs-List $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push origin main
+          git commit -m "Update CF-BestIPs-List"
+          git push

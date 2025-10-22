@@ -44,12 +44,18 @@ jobs:
           echo '    text = item.get_text()' >> extract_ips.py
           echo '    ips = re.findall(ip_pattern, text)' >> extract_ips.py
           echo '    ip_addresses.update(ips)' >> extract_ips.py
+          echo 'print(f"Found IP addresses: {ip_addresses}")' >> extract_ips.py
           echo 'formatted_ips = [f"{ip}:8443" for ip in ip_addresses]' >> extract_ips.py
+          echo 'print(f"Formatted IPs: {formatted_ips}")' >> extract_ips.py
           echo 'with open("CFIPS", "w") as f:' >> extract_ips.py
           echo '    f.write("\\n".join(formatted_ips))' >> extract_ips.py
-
+          
           # 执行 Python 脚本
           python extract_ips.py
+
+      # 输出 Git 状态，调试是否提交成功
+      - name: Check git status
+        run: git status
 
       # 将文件提交到 GitHub 仓库
       - name: Commit and push updated CFIPS file
@@ -57,5 +63,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add CFIPS
-          git commit -m "Update CFIPS"
+          git commit -m "Update CFIPS with new IP addresses" || echo "No changes to commit"
           git push

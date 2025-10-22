@@ -1,4 +1,4 @@
-name: Update CF-BestIPs
+name: Update CF-BestIPs-B
 on:
   schedule:
     - cron: '0 * * * *'  # 每小时运行一次
@@ -28,24 +28,24 @@ jobs:
           # 检查 temp_ips.txt 是否为空
           [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
 
-          # 清空 CF-BestIPs 文件，并将新的 IP 地址与端口写入文件
-          > CF-BestIPs
+          # 清空 CF-BestIPs-B 文件，并将新的 IP 地址与端口写入文件
+          > CF-BestIPs-B
           while IFS= read -r ip; do
-            echo "${ip}:8443" >> CF-BestIPs
+            echo "${ip}:8443" >> CF-BestIPs-B
           done < temp_ips.txt
 
           # 移除临时文件
           rm temp_ips.txt
 
-          # 检查 CF-BestIPs 是否为空
-          [ -s CF-BestIPs ] || { echo "错误：IP 列表为空"; exit 1; }
+          # 检查 CF-BestIPs-B 是否为空
+          [ -s CF-BestIPs-B ] || { echo "错误：IP 列表为空"; exit 1; }
 
           # 提交更新到 GitHub 仓库
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
-          git add CF-BestIPs
-          git commit -m "自动更新 CF-BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
+          git add CF-BestIPs-B
+          git commit -m "自动更新 CF-BestIPs-B $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
           git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
           git push origin main || { echo "错误：git push 失败"; exit 1; }
-          echo "成功更新 CF-BestIPs"
+          echo "成功更新 CF-BestIPs-B"
         shell: /usr/bin/bash -e {0}

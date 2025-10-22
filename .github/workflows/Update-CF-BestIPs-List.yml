@@ -2,31 +2,35 @@ name: Update CF-BestIPs-List
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时运行一次
+    - cron: '0 16-23,0-7 * * *'  # 北京时间每小时整点
   workflow_dispatch:  # 允许手动触发
 
 jobs:
   merge-ips:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      # 检出代码
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
 
-      # 获取 CF-BestIPs-A 和 CF-BestIPs-B 的内容并合并
-      - name: Merge CF-BestIPs-A and CF-BestIPs-B
+      - name: Merge and deduplicate
         run: |
-          curl -s https://raw.githubusercontent.com/kafemars/best-ips-domains/main/CF-BestIPs-A > CF-BestIPs-A.txt
-          curl -s https://raw.githubusercontent.com/kafemars/best-ips-domains/main/CF-BestIPs-B > CF-BestIPs-B.txt
-          cat CF-BestIPs-A.txt CF-BestIPs-B.txt | sort | uniq > CF-BestIPs-List.txt
+          cat CF-BestIPs-A CF-BestIPs-B | sort | uniq > CF-BestIPs-List.new
+          if cmp -s CF-BestIPs-List.new CF-BestIPs-List; then
+            echo "无变化，跳过提交"
+            rm CF-BestIPs-List.new
+            exit 0
+          fi
+          mv CF-BestIPs-List.new CF-BestIPs-List
 
-      # 更新到 CF-BestIPs-List 文件并推送
-      - name: Update CF-BestIPs-List
+      - name: Commit and push
         run: |
-          mv CF-BestIPs-List.txt CF-BestIPs-List
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add CF-BestIPs-List
-          git commit -m "Update CF-BestIPs-List"
-          git push
+          git commit -m "Auto-update CF-BestIPs-List (merged A+B)"
+          git push origin main

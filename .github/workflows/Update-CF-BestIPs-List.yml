@@ -3,6 +3,10 @@ name: Update CF-BestIPs-List
 on:
   schedule:
     - cron: '0 16-23,0-7 * * *'  # 北京时间每小时整点 (UTC+8)
+  push:
+    paths:
+      - 'CF-BestIPs-A'  # 监听 A 文件变化
+      - 'CF-BestIPs-B'  # 监听 B 文件变化
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -16,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}  # 使用 PAT 修复 token 报错
+          token: ${{ secrets.GH_TOKEN }}  # 确保推送权限
 
       # 2. 合并并去重
       - name: Merge CF-BestIPs-A and CF-BestIPs-B

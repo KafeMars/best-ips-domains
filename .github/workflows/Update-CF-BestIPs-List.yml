@@ -58,5 +58,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add CF-BestIPs-List
-          git commit -m "🤖 自动更新 CF-BestIPs-List $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
+          git commit -m "🤖 自动更新 CF-BestIPs-List $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
           git push origin main

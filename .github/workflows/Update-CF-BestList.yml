@@ -38,27 +38,27 @@ jobs:
             exit 1
           fi
           # 合并并去重（保留原始顺序）
-          cat CF-BestIPs-A CF-BestIPs-B | awk '!seen[$0]++' > CF-BestIPs-List.new
+          cat CF-BestIPs-A CF-BestIPs-B | awk '!seen[$0]++' > CF-BestList.new
           # 检查输出是否为空
-          if [ ! -s CF-BestIPs-List.new ]; then
+          if [ ! -s CF-BestList.new ]; then
             echo "❌ 错误：合并后文件为空"
-            rm CF-BestIPs-List.new
+            rm CF-BestList.new
             exit 1
           fi
           # 比较新旧文件
-          if cmp -s CF-BestIPs-List.new CF-BestIPs-List; then
+          if cmp -s CF-BestList.new CF-BestList; then
             echo "✅ 无变化，跳过提交"
-            rm CF-BestIPs-List.new
+            rm CF-BestList.new
             exit 0
           fi
-          mv CF-BestIPs-List.new CF-BestIPs-List
-          echo "✅ 合并完成，文件行数: $(wc -l < CF-BestIPs-List)"
+          mv CF-BestList.new CF-BestList
+          echo "✅ 合并完成，文件行数: $(wc -l < CF-BestList)"
 
       # 3. 提交并推送
-      - name: Update CF-BestIPs-List
+      - name: Update CF-BestList
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CF-BestIPs-List
-          git commit -m "🤖 自动更新 CF-BestIPs-List $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
+          git add CF-BestList
+          git commit -m "🤖 自动更新 CF-BestList $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
           git push origin main

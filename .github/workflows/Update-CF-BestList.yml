@@ -1,4 +1,4 @@
-name: Update CF-BestIPs-List
+name: Update CF-BestList
 
 on:
   push:

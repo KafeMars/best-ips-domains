@@ -1,7 +1,7 @@
 name: Update CF-BestIPs-B
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 每19分钟执行一次
+    - cron: '*/30 * * * *'  # 每30分钟执行一次
   workflow_dispatch: # 手动触发
 
 jobs:

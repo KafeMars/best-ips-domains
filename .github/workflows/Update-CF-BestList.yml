@@ -6,6 +6,8 @@ on:
       - 'CF-BestIPs-A'  # 监听 A 文件变化
       - 'CF-BestIPs-B'  # 监听 B 文件变化
       - 'BestDomains'    # 监听 BestDomains 文件变化
+  schedule:
+    - cron: '*/66 * * * *' 
   workflow_dispatch:  # 允许手动触发
 
 jobs:

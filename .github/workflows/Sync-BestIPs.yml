@@ -1,0 +1,52 @@
+name: Sync BestIPs from A repo
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 每小时检查一次
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ 拉取 B 仓库代码
+      - name: Checkout B repo
+        uses: actions/checkout@v3
+
+      # 2️⃣ 配置 Git
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      # 3️⃣ 拉取私有 A 仓库
+      - name: Checkout Private A repo
+        uses: actions/checkout@v3
+        with:
+          repository: kafemars/CF-BestIPs-List
+          token: ${{ secrets.PAT_A_REPO }}
+          path: private_repo
+
+      # 4️⃣ 对比文件内容（忽略行首尾空格，但保留原格式）
+      - name: Check for changes
+        id: check
+        run: |
+          set -e
+          # 对比内容，忽略行首尾空格
+          if diff -q <(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' BestIPs) <(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' private_repo/BestIPs-List) > /dev/null; then
+            echo "Files are identical, no update needed."
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Files are different, update needed."
+            echo "changed=true" >> $GITHUB_OUTPUT
+
+      # 5️⃣ 仅在文件变化时覆盖并提交
+      - name: Overwrite & Commit if changed
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          cp private_repo/BestIPs-List BestIPs
+          git add BestIPs
+          git commit -m "🤖 Update BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
+          git push
+          echo "BestIPs file updated and pushed successfully."

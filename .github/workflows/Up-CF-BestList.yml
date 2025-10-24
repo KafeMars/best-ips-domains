@@ -7,7 +7,7 @@ on:
       - 'CF-BestIPs-B'  # 监听 B 文件变化
       - 'BestDomains'    # 监听 BestDomains 文件变化
   schedule:
-    - cron: '*/66 * * * *' 
+    - cron: '*/120 * * * *' 
   workflow_dispatch:  # 允许手动触发
 
 jobs:

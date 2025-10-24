@@ -8,10 +8,11 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout B repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Git
         run: |
@@ -19,26 +20,31 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
       - name: Checkout Private A repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: kafemars/CF-BestIPs-List
           token: ${{ secrets.PAT_A_REPO }}
           path: private_repo
+          fetch-depth: 1
 
       - name: Check for changes
         id: check
         run: |
-          set -e
-          sed 's/^[[:space:]]*//;s/[[:space:]]*$//' BestIPs > tmp_BestIPs
-          sed 's/^[[:space:]]*//;s/[[:space:]]*$//' private_repo/BestIPs-List > tmp_BestIPsList
-          if diff -q tmp_BestIPs tmp_BestIPsList > /dev/null; then
-            echo "Files are identical, no update needed."
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "Files are different, update needed."
+          if [ ! -f BestIPs ]; then
+            echo "No local BestIPs found, will sync from A repo."
             echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            TMP1=$(mktemp)
+            TMP2=$(mktemp)
+            sed 's/^[[:space:]]*//;s/[[:space:]]*$//' BestIPs > "$TMP1"
+            sed 's/^[[:space:]]*//;s/[[:space:]]*$//' private_repo/BestIPs-List > "$TMP2"
+            if diff -q "$TMP1" "$TMP2" > /dev/null; then
+              echo "changed=false" >> $GITHUB_OUTPUT
+            else
+              echo "changed=true" >> $GITHUB_OUTPUT
+            fi
+            rm -f "$TMP1" "$TMP2"
           fi
-          rm tmp_BestIPs tmp_BestIPsList
 
       - name: Overwrite & Commit if changed
         if: steps.check.outputs.changed == 'true'
@@ -46,5 +52,4 @@ jobs:
           cp private_repo/BestIPs-List BestIPs
           git add BestIPs
           git commit -m "🤖 Update BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
-          git push
-          echo "BestIPs file updated and pushed successfully."
+          git push origin HEAD:main

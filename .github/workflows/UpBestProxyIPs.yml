@@ -2,8 +2,8 @@ name: Update BestProxyIPs
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时运行一次
-  workflow_dispatch:  # 允许手动触发
+    - cron: '0 * * * *' 
+  workflow_dispatch: 
 
 jobs:
   update-ips:
@@ -12,12 +12,11 @@ jobs:
       - name: 检出代码库
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 获取完整历史记录
+          fetch-depth: 0 
 
       - name: 获取并更新 IP 地址
         run: |
           set -e
-          # 获取网页内容并提取 IPv4 地址
           curl -s -f --connect-timeout 10 --retry 2 'https://ipdb.api.030101.xyz/?type=bestproxy' | \
           grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
           sort -u > temp_ips.txt || {
@@ -25,13 +24,10 @@ jobs:
             exit 1
           }
 
-          # 检查 temp_ips.txt 是否为空
           [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
 
-          # 检查是否有变化
           [ -f BestProxyIPs ] && cmp -s temp_ips.txt BestProxyIPs && { echo "IP 地址无变化"; rm temp_ips.txt; exit 0; }
 
-          # 更新文件并提交
           mv temp_ips.txt BestProxyIPs || { echo "错误：无法更新 BestProxyIPs 文件"; exit 1; }
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'

@@ -2,13 +2,14 @@ name: Update CF-BestIPs
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 每30分钟运行
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:
   update-ips:
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1  # ✅ 顺序执行，避免 push 冲突
       matrix:
         list:
           - name: CF-BestIPs-A
@@ -25,7 +26,6 @@ jobs:
       - name: Update and Merge ${{ matrix.list.name }}
         run: |
           set -e
-
           retry() {
             local n=0
             local max=3

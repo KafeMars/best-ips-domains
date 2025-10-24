@@ -6,6 +6,7 @@ on:
       - 'CF-BestIPs-A'
       - 'CF-BestIPs-B'
       - 'BestDomains'
+      - 'BestIPs'
   schedule:
     - cron: '0 18 * * *'
   workflow_dispatch:
@@ -24,11 +25,11 @@ jobs:
 
       - name: Merge random IPs and domains into BestList
         run: |
-          if [ ! -f CF-BestIPs-A ] || [ ! -f CF-BestIPs-B ] || [ ! -f BestDomains ]; then
+          if [ ! -f CF-BestIPs-A ] || [ ! -f CF-BestIPs-B ] || [ ! -f BestDomains ] || [ ! -f BestIPs ]; then
             echo "❌ 文件缺失"
             exit 1
           fi
-          if [ ! -s CF-BestIPs-A ] && [ ! -s CF-BestIPs-B ] && [ ! -s BestDomains ]; then
+          if [ ! -s CF-BestIPs-A ] && [ ! -s CF-BestIPs-B ] && [ ! -s BestDomains ] && [ ! -s BestIPs ]; then
             echo "❌ 所有文件为空"
             exit 1
           fi
@@ -40,10 +41,14 @@ jobs:
           # Select the first 5 lines from BestDomains
           selected_domains=$(head -n 5 BestDomains)
           
+          # Select the entire BestIPs file
+          selected_bestips=$(cat BestIPs)
+          
           # Merge them into BestList
           echo "$selected_ips_a" > BestList.new
           echo "$selected_ips_b" >> BestList.new
           echo "$selected_domains" >> BestList.new
+          echo "$selected_bestips" >> BestList.new
 
           # Remove duplicates
           awk '!seen[$0]++' BestList.new > BestList.new.tmp && mv BestList.new.tmp BestList.new

@@ -2,7 +2,7 @@ name: Update CF-BestIPs
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/30 * * * *'  # 每30分钟运行
   workflow_dispatch:
 
 jobs:
@@ -22,9 +22,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update ${{ matrix.list.name }}
+      - name: Update and Merge ${{ matrix.list.name }}
         run: |
           set -e
+
           retry() {
             local n=0
             local max=3
@@ -42,12 +43,12 @@ jobs:
 
           echo "🔄 Fetching IPs from: ${{ matrix.list.url }}"
           IPS=$(retry curl -s -f --connect-timeout 10 --retry 2 --header "Cache-Control: no-cache" "${{ matrix.list.url }}" | \
-                grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-fA-F:]+:+)+[0-9a-fA-F]+' | sort -u) || { echo "❌ Failed to fetch or parse IPs"; exit 1; }
+                grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-fA-F:]+:+)+[0-9a-fA-F]+' | sort -u) || { echo "❌ Failed to fetch IPs"; exit 1; }
 
           [ -n "$IPS" ] || { echo "❌ Empty IP list"; exit 1; }
 
           echo "$IPS" | awk '{print $0":8443"}' > "${{ matrix.list.name }}"
-          [ -s "${{ matrix.list.name }}" ] || { echo "❌ Processed file is empty"; exit 1; }
+          [ -s "${{ matrix.list.name }}" ] || { echo "❌ Empty processed file"; exit 1; }
 
           echo "✅ ${{ matrix.list.name }} updated, total lines: $(wc -l < "${{ matrix.list.name }}")"
 
@@ -60,14 +61,23 @@ jobs:
           git commit -m "🤖 Update ${{ matrix.list.name }} $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
           retry git push origin "$BRANCH"
 
+          echo "🔄 Syncing main branch..."
           git fetch origin main
           git checkout main
           git reset --hard origin/main
+
           if git merge --no-ff "$BRANCH" -m "🤖 Merge $BRANCH into main"; then
-            retry git push origin main
+            retry git push origin main --force-with-lease
             echo "✅ Successfully merged $BRANCH into main"
           else
-            echo "⚠️ Merge conflict detected. Aborting."
+            echo "⚠️ Merge conflict detected. Aborting merge."
             git merge --abort
           fi
+
+          echo "🧹 Cleaning old remote branches..."
+          git fetch --prune
+          for branch in $(git branch -r | grep 'origin/update-' | sed 's|origin/||'); do
+            echo "Deleting remote branch: $branch"
+            git push origin --delete "$branch" || true
+          done
         shell: /usr/bin/bash -e {0}

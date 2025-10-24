@@ -51,20 +51,27 @@ jobs:
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
 
-          retry git pull --rebase origin main || { echo "Error: git pull failed"; exit 1; }
+          # 使用独立分支
+          BRANCH="update-${{ matrix.list.name }}-$(date +%s)"
+          git checkout -b "$BRANCH"
 
           git add "${{ matrix.list.name }}"
           git commit -m "🤖 Update ${{ matrix.list.name }} $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
 
-          # 并发安全推送
-          for i in {1..3}; do
-            if git push origin main; then
-              echo "Successfully pushed ${{ matrix.list.name }}"
-              break
-            else
-              echo "Push failed, retrying pull/rebase and push ($i/3)..."
-              git pull --rebase origin main || { echo "Error: git pull failed during retry"; exit 1; }
-              git push origin main && break
-            fi
-          done
+          # 推送到独立分支
+          retry git push origin "$BRANCH" || { echo "Error: git push failed"; exit 1; }
+          echo "Successfully pushed ${{ matrix.list.name }} to branch $BRANCH"
+
+          # 自动合并到 main 分支
+          retry git checkout main
+          retry git pull origin main
+
+          # 尝试合并独立分支
+          if git merge --no-ff "$BRANCH" -m "🤖 Merge $BRANCH into main"; then
+            retry git push origin main
+            echo "Successfully merged $BRANCH into main"
+          else
+            echo "Merge conflict detected. Aborting merge and keeping $BRANCH for manual review."
+            git merge --abort
+          fi
         shell: /usr/bin/bash -e {0}

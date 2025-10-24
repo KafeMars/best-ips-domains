@@ -1,4 +1,4 @@
-name: Update CF-BestList
+name: Update BestList
 
 on:
   push:
@@ -34,28 +34,28 @@ jobs:
             echo "❌ 错误：CF-BestIPs-A、CF-BestIPs-B 和 BestDomains 均为空"
             exit 1
           fi
-          cat CF-BestIPs-A CF-BestIPs-B BestDomains | awk '!seen[$0]++' > CF-BestList.new
-          if [ ! -s CF-BestList.new ]; then
+          cat CF-BestIPs-A CF-BestIPs-B BestDomains | awk '!seen[$0]++' > BestList.new
+          if [ ! -s BestList.new ]; then
             echo "❌ 错误：合并后文件为空"
-            rm CF-BestList.new
+            rm BestList.new
             exit 1
           fi
-          if [ -f CF-BestList ] && cmp -s CF-BestList CF-BestList.new; then
+          if [ -f BestList ] && cmp -s BestList BestList.new; then
             echo "✅ 无变化，跳过提交"
-            rm CF-BestList.new
+            rm BestList.new
             exit 0
           fi
-          mv CF-BestList.new CF-BestList
-          echo "✅ 合并完成，文件行数: $(wc -l < CF-BestList)"
+          mv BestList.new BestList
+          echo "✅ 合并完成，文件行数: $(wc -l < BestList)"
 
-      - name: Update CF-BestList
+      - name: Update BestList
         run: |
           set -e
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CF-BestList
-          git commit -m "🤖 Update CF-BestList ($(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M'))" || true
+          git add BestList
+          git commit -m "🤖 Update BestList ($(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M'))" || true
 
           retry() {
             local n=0
@@ -73,4 +73,4 @@ jobs:
           }
 
           retry git push origin main || { echo "❌ Error: git push failed"; exit 1; }
-          echo "✅ Successfully pushed CF-BestList"
+          echo "✅ Successfully pushed BestList"

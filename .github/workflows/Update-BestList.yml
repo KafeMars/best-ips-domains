@@ -24,34 +24,31 @@ jobs:
 
       - name: Merge CF-BestIPs-A, CF-BestIPs-B, and BestDomains
         run: |
-          echo "🔄 正在合并 CF-BestIPs-A、CF-BestIPs-B 和 BestDomains..."
           if [ ! -f CF-BestIPs-A ] || [ ! -f CF-BestIPs-B ] || [ ! -f BestDomains ]; then
-            echo "❌ 错误：CF-BestIPs-A、CF-BestIPs-B 或 BestDomains 文件不存在"
-            ls -l
+            echo "❌ 文件缺失"
             exit 1
           fi
           if [ ! -s CF-BestIPs-A ] && [ ! -s CF-BestIPs-B ] && [ ! -s BestDomains ]; then
-            echo "❌ 错误：CF-BestIPs-A、CF-BestIPs-B 和 BestDomains 均为空"
+            echo "❌ 所有文件为空"
             exit 1
           fi
           cat CF-BestIPs-A CF-BestIPs-B BestDomains | awk '!seen[$0]++' > BestList.new
           if [ ! -s BestList.new ]; then
-            echo "❌ 错误：合并后文件为空"
+            echo "❌ 合并结果为空"
             rm BestList.new
             exit 1
           fi
-          if [ -f BestList ] && cmp -s BestList BestList.new; then
+          if cmp -s BestList.new BestList; then
             echo "✅ 无变化，跳过提交"
             rm BestList.new
             exit 0
           fi
           mv BestList.new BestList
-          echo "✅ 合并完成，文件行数: $(wc -l < BestList)"
+          echo "✅ 合并完成，行数: $(wc -l < BestList)"
 
       - name: Update BestList
         run: |
           set -e
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add BestList
@@ -72,5 +69,10 @@ jobs:
             done
           }
 
-          retry git push origin main || { echo "❌ Error: git push failed"; exit 1; }
+          echo "🔄 拉取远程最新代码..."
+          git fetch origin main
+          git rebase origin/main || { echo "⚠️ rebase 冲突，自动重置"; git rebase --abort; git reset --hard origin/main; }
+
+          echo "🚀 推送更新..."
+          retry git push origin main || { echo "❌ git push 失败"; exit 1; }
           echo "✅ Successfully pushed BestList"

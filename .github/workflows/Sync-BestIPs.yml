@@ -2,25 +2,22 @@ name: Sync BestIPs from A Repo
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 每小时检查一次
-  workflow_dispatch:  # 支持手动触发
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ 拉取 B 仓库代码
       - name: Checkout B repo
         uses: actions/checkout@v3
 
-      # 2️⃣ 配置 Git
       - name: Setup Git
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-      # 3️⃣ 拉取私有 A 仓库
       - name: Checkout Private A repo
         uses: actions/checkout@v3
         with:
@@ -28,17 +25,12 @@ jobs:
           token: ${{ secrets.PAT_A_REPO }}
           path: private_repo
 
-      # 4️⃣ 对比文件内容（忽略行首尾空格，保留原格式）
       - name: Check for changes
         id: check
         run: |
           set -e
-
-          # 创建临时文件，去掉行首尾空格
           sed 's/^[[:space:]]*//;s/[[:space:]]*$//' BestIPs > tmp_BestIPs
           sed 's/^[[:space:]]*//;s/[[:space:]]*$//' private_repo/BestIPs-List > tmp_BestIPsList
-
-          # 比较临时文件
           if diff -q tmp_BestIPs tmp_BestIPsList > /dev/null; then
             echo "Files are identical, no update needed."
             echo "changed=false" >> $GITHUB_OUTPUT
@@ -46,16 +38,13 @@ jobs:
             echo "Files are different, update needed."
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
-
-          # 删除临时文件
           rm tmp_BestIPs tmp_BestIPsList
 
-      # 5️⃣ 仅在文件变化时覆盖并提交
       - name: Overwrite & Commit if changed
         if: steps.check.outputs.changed == 'true'
         run: |
           cp private_repo/BestIPs-List BestIPs
           git add BestIPs
-          git commit -m "Update BestIPs"
+          git commit -m "Update BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
           git push
           echo "BestIPs file updated and pushed successfully."

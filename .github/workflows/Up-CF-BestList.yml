@@ -3,51 +3,44 @@ name: Update CF-BestList
 on:
   push:
     paths:
-      - 'CF-BestIPs-A'  # 监听 A 文件变化
-      - 'CF-BestIPs-B'  # 监听 B 文件变化
-      - 'BestDomains'    # 监听 BestDomains 文件变化
+      - 'CF-BestIPs-A'
+      - 'CF-BestIPs-B'
+      - 'BestDomains'
   schedule:
-    - cron: '*/120 * * * *' 
-  workflow_dispatch:  # 允许手动触发
+    - cron: '0 18 * * *'
+  workflow_dispatch:
 
 jobs:
   merge-ips:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 推送权限
+      contents: write
 
     steps:
-      # 1. 检出代码
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}  # 确保推送权限
+          token: ${{ secrets.GH_TOKEN }}
 
-      # 2. 合并并去重
       - name: Merge CF-BestIPs-A, CF-BestIPs-B, and BestDomains
         run: |
           echo "🔄 正在合并 CF-BestIPs-A、CF-BestIPs-B 和 BestDomains..."
-          # 检查文件是否存在
           if [ ! -f CF-BestIPs-A ] || [ ! -f CF-BestIPs-B ] || [ ! -f BestDomains ]; then
             echo "❌ 错误：CF-BestIPs-A、CF-BestIPs-B 或 BestDomains 文件不存在"
-            ls -l  # 显示目录内容以调试
+            ls -l
             exit 1
           fi
-          # 检查文件是否为空
           if [ ! -s CF-BestIPs-A ] && [ ! -s CF-BestIPs-B ] && [ ! -s BestDomains ]; then
             echo "❌ 错误：CF-BestIPs-A、CF-BestIPs-B 和 BestDomains 均为空"
             exit 1
           fi
-          # 合并并去重（保留原始顺序）
           cat CF-BestIPs-A CF-BestIPs-B BestDomains | awk '!seen[$0]++' > CF-BestList.new
-          # 检查输出是否为空
           if [ ! -s CF-BestList.new ]; then
             echo "❌ 错误：合并后文件为空"
             rm CF-BestList.new
             exit 1
           fi
-          # 比较新旧文件
-          if cmp -s CF-BestList.new CF-BestList; then
+          if [ -f CF-BestList ] && cmp -s CF-BestList CF-BestList.new; then
             echo "✅ 无变化，跳过提交"
             rm CF-BestList.new
             exit 0
@@ -55,11 +48,29 @@ jobs:
           mv CF-BestList.new CF-BestList
           echo "✅ 合并完成，文件行数: $(wc -l < CF-BestList)"
 
-      # 3. 提交并推送
       - name: Update CF-BestList
         run: |
+          set -e
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add CF-BestList
-          git commit -m "🤖 Update CF-BestList ($(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M'))"
-          git push origin main
+          git commit -m "🤖 Update CF-BestList ($(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M'))" || true
+
+          retry() {
+            local n=0
+            local max=3
+            local delay=5
+            until "$@"; do
+              n=$((n+1))
+              if [ $n -ge $max ]; then
+                echo "❌ Command failed after $n attempts: $*"
+                return 1
+              fi
+              echo "Retry $n/$max after $delay seconds..."
+              sleep $delay
+            done
+          }
+
+          retry git push origin main || { echo "❌ Error: git push failed"; exit 1; }
+          echo "✅ Successfully pushed CF-BestList"

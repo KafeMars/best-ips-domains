@@ -1,4 +1,4 @@
-name: Sync BestIPs from A repo
+name: Sync BestIPs from A Repo
 
 on:
   schedule:
@@ -28,18 +28,27 @@ jobs:
           token: ${{ secrets.PAT_A_REPO }}
           path: private_repo
 
-      # 4️⃣ 对比文件内容（忽略行首尾空格，但保留原格式）
+      # 4️⃣ 对比文件内容（忽略行首尾空格，保留原格式）
       - name: Check for changes
         id: check
         run: |
           set -e
-          # 对比内容，忽略行首尾空格
-          if diff -q <(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' BestIPs) <(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' private_repo/BestIPs-List) > /dev/null; then
+
+          # 创建临时文件，去掉行首尾空格
+          sed 's/^[[:space:]]*//;s/[[:space:]]*$//' BestIPs > tmp_BestIPs
+          sed 's/^[[:space:]]*//;s/[[:space:]]*$//' private_repo/BestIPs-List > tmp_BestIPsList
+
+          # 比较临时文件
+          if diff -q tmp_BestIPs tmp_BestIPsList > /dev/null; then
             echo "Files are identical, no update needed."
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "Files are different, update needed."
             echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+          # 删除临时文件
+          rm tmp_BestIPs tmp_BestIPsList
 
       # 5️⃣ 仅在文件变化时覆盖并提交
       - name: Overwrite & Commit if changed
@@ -47,6 +56,6 @@ jobs:
         run: |
           cp private_repo/BestIPs-List BestIPs
           git add BestIPs
-          git commit -m "🤖 Update BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
+          git commit -m "Update BestIPs"
           git push
           echo "BestIPs file updated and pushed successfully."

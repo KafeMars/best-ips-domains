@@ -45,6 +45,6 @@ jobs:
         run: |
           cp private_repo/BestIPs-List BestIPs
           git add BestIPs
-          git commit -m "Update BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
+          git commit -m "🤖 Update BestIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
           git push
           echo "BestIPs file updated and pushed successfully."

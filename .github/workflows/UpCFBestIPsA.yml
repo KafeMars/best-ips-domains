@@ -1,52 +1,52 @@
 name: Update CF-BestIPs-A
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 每30分钟执行一次
-  workflow_dispatch: # 支持手动触发
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 jobs:
   update-ips:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码库
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 获取完整历史记录
+          fetch-depth: 0
 
-      - name: 获取并更新 IP 地址
+      - name: Update IPs
         run: |
           set -e
-          # 获取网页内容并提取所有 IPv4 地址
-          # 若需更换链接，修改以下 URL 即可，例如：'https://new.example.com/ip-list'
-          curl -s -f --connect-timeout 10 --retry 2 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4' | \
-          grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
-          sort -u > temp_ips.txt || {
-            echo "错误：无法获取或提取 IP 地址"
-            exit 1
+
+          retry() {
+            local n=0
+            local max=3
+            local delay=5
+            until "$@"; do
+              n=$((n+1))
+              if [ $n -ge $max ]; then
+                echo "Command failed after $n attempts: $*"
+                return 1
+              fi
+              echo "Retry $n/$max after $delay seconds..."
+              sleep $delay
+            done
           }
 
-          # 检查 temp_ips.txt 是否为空
-          [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
+          IPS=$(retry curl -s -f --connect-timeout 10 --retry 2 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4' | \
+                grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-fA-F:]+:+)+[0-9a-fA-F]+' | sort -u) || { echo "Error: failed to fetch or extract IPs"; exit 1; }
 
-          # 处理每个 IP：添加端口
-          > CF-BestIPs-A  # 清空 CF-BestIPs-A 文件
-          while IFS= read -r ip; do
-            # 添加端口
-            echo "${ip}:8443" >> CF-BestIPs-A
-          done < temp_ips.txt
+          [ -n "$IPS" ] || { echo "Error: IP list is empty"; exit 1; }
 
-          # 移除临时文件
-          rm temp_ips.txt
+          echo "$IPS" | awk '{print $0":8443"}' > CF-BestIPs-A
 
-          # 检查 CF-BestIPs-A 是否为空
-          [ -s CF-BestIPs-A ] || { echo "错误：IP 列表为空"; exit 1; }
+          [ -s CF-BestIPs-A ] || { echo "Error: IP list is empty after processing"; exit 1; }
 
-          # 提交更新
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git add CF-BestIPs-A
           git commit -m "🤖 Update CF-BestIPs-A $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
-          git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
-          git push origin main || { echo "错误：git push 失败"; exit 1; }
-          echo "成功更新 CF-BestIPs-A"
+          retry git pull --rebase origin main || { echo "Error: git pull failed"; exit 1; }
+          retry git push origin main || { echo "Error: git push failed"; exit 1; }
+
+          echo "Successfully updated CF-BestIPs-A"
         shell: /usr/bin/bash -e {0}

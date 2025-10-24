@@ -22,7 +22,7 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Merge CF-BestIPs-A, CF-BestIPs-B, and BestDomains
+      - name: Merge random IPs and domains into BestList
         run: |
           if [ ! -f CF-BestIPs-A ] || [ ! -f CF-BestIPs-B ] || [ ! -f BestDomains ]; then
             echo "❌ 文件缺失"
@@ -32,7 +32,22 @@ jobs:
             echo "❌ 所有文件为空"
             exit 1
           fi
-          cat CF-BestIPs-A CF-BestIPs-B BestDomains | awk '!seen[$0]++' > BestList.new
+          
+          # Select 5 random IPs from A and B
+          selected_ips_a=$(shuf -n 5 CF-BestIPs-A)
+          selected_ips_b=$(shuf -n 5 CF-BestIPs-B)
+          
+          # Select the first 5 lines from BestDomains
+          selected_domains=$(head -n 5 BestDomains)
+          
+          # Merge them into BestList
+          echo "$selected_ips_a" > BestList.new
+          echo "$selected_ips_b" >> BestList.new
+          echo "$selected_domains" >> BestList.new
+
+          # Remove duplicates
+          awk '!seen[$0]++' BestList.new > BestList.new.tmp && mv BestList.new.tmp BestList.new
+
           if [ ! -s BestList.new ]; then
             echo "❌ 合并结果为空"
             rm BestList.new

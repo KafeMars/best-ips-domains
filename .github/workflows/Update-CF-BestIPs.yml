@@ -49,7 +49,7 @@ jobs:
           echo "$IPS" | awk '{print $0":8443"}' > "${{ matrix.list.name }}"
           [ -s "${{ matrix.list.name }}" ] || { echo "❌ Processed file is empty"; exit 1; }
 
-          echo "✅ ${ { matrix.list.name }} updated, total lines: $(wc -l < "${{ matrix.list.name }}")"
+          echo "✅ ${{ matrix.list.name }} updated, total lines: $(wc -l < "${{ matrix.list.name }}")"
 
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'

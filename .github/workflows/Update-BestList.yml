@@ -44,9 +44,9 @@ jobs:
           # Select the entire BestIPs file
           selected_bestips=$(cat BestIPs)
           
-          # Merge them into BestList
-          echo "$selected_domains" >> BestList.new
-          echo "$selected_ips_a" > BestList.new
+          # Merge them into BestList (BestDomains first)
+          echo "$selected_domains" > BestList.new
+          echo "$selected_ips_a" >> BestList.new
           echo "$selected_ips_b" >> BestList.new
           echo "$selected_bestips" >> BestList.new
 

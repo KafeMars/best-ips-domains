@@ -2,38 +2,72 @@ name: Update BestProxyIPs
 
 on:
   schedule:
-    - cron: '0 * * * *' 
-  workflow_dispatch: 
+    - cron: '0 * * * *'  # 每小时执行一次（UTC 时间）
+  workflow_dispatch:
 
 jobs:
   update-ips:
     runs-on: ubuntu-latest
+
     steps:
       - name: 检出代码库
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0  # 保留完整 Git 历史以便 rebase
 
       - name: 获取并更新 IP 地址
+        shell: bash
         run: |
-          set -e
-          curl -s -f --connect-timeout 10 --retry 2 'https://ipdb.api.030101.xyz/?type=bestproxy' | \
-          grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
-          sort -u > temp_ips.txt || {
-            echo "错误：无法获取或提取 IP 地址"
+          set -euo pipefail
+
+          echo "🔄 获取最新代理 IP..."
+          if ! curl -s -f --connect-timeout 10 --retry 3 'https://ipdb.api.030101.xyz/?type=bestproxy' \
+            | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}' \
+            | sort -u > temp_ips.txt; then
+            echo "❌ 错误：无法获取或提取 IP 地址"
             exit 1
-          }
+          fi
 
-          [ -s temp_ips.txt ] || { echo "错误：IP 列表为空"; exit 1; }
+          if [ ! -s temp_ips.txt ]; then
+            echo "❌ 错误：IP 列表为空"
+            exit 1
+          fi
 
-          [ -f BestProxyIPs ] && cmp -s temp_ips.txt BestProxyIPs && { echo "IP 地址无变化"; rm temp_ips.txt; exit 0; }
+          if [ -f BestProxyIPs ] && cmp -s temp_ips.txt BestProxyIPs; then
+            echo "ℹ️ IP 地址无变化，跳过更新。"
+            rm temp_ips.txt
+            exit 0
+          fi
 
-          mv temp_ips.txt BestProxyIPs || { echo "错误：无法更新 BestProxyIPs 文件"; exit 1; }
+          mv temp_ips.txt BestProxyIPs
+          echo "✅ IP 文件已更新，准备提交。"
+
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git add BestProxyIPs
           git commit -m "🤖 Update BestProxyIPs $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')" || true
-          git pull --rebase origin main || { echo "错误：git pull --rebase 失败"; exit 1; }
-          git push origin main || { echo "错误：git push 失败"; exit 1; }
-          echo "成功更新 BestProxyIPs"
-        shell: bash
+
+          echo "🔁 同步远程分支..."
+          for i in {1..3}; do
+            if git pull --rebase origin main; then
+              break
+            else
+              echo "⚠️ 第 $i 次 pull 失败，等待 5 秒后重试..."
+              sleep 5
+            fi
+          done
+
+          echo "🚀 推送更新到远程..."
+          for i in {1..3}; do
+            if git push origin main; then
+              echo "✅ 成功更新 BestProxyIPs"
+              exit 0
+            else
+              echo "⚠️ 第 $i 次 push 失败，等待 5 秒后重试..."
+              git fetch origin main
+              sleep 5
+            fi
+          done
+
+          echo "❌ 错误：多次推送失败"
+          exit 1

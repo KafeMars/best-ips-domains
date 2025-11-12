@@ -42,7 +42,7 @@ jobs:
           selected_ips_b=$(shuf -n 3 CF-BestIPs-B)
           
           # Select the entire BestIPs file
-          selected_bestips=$(cat BestIPs)
+          selected_bestips=$(shuf -n 3 BestIPs)
           
           # Merge them into BestList (BestDomains first)
           echo "$selected_domains" > BestList.new

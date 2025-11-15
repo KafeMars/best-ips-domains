@@ -6,9 +6,8 @@ on:
       - 'BestDomains'
       - 'CF-BestIPs-A'
       - 'CF-BestIPs-B'
-      - 'BestIPs'
   schedule:
-    - cron: '0 */8 * * *'  # 每 8 小时自动运行一次
+    - cron: '0 */8 * * *'
   workflow_dispatch:
 
 jobs:
@@ -34,21 +33,17 @@ jobs:
             exit 1
           fi
                     
-          # Select the first 5 lines from BestDomains
+          # Select the 5 lines from BestDomains
           selected_domains=$(shuf -n 5 BestDomains)
           
           # Select 3 random IPs from A and B
           selected_ips_a=$(shuf -n 3 CF-BestIPs-A)
           selected_ips_b=$(shuf -n 3 CF-BestIPs-B)
           
-          # Select the entire BestIPs file
-          selected_bestips=$(shuf -n 4 BestIPs)
-          
           # Merge them into BestList (BestDomains first)
           echo "$selected_domains" > BestList.new
           echo "$selected_ips_a" >> BestList.new
           echo "$selected_ips_b" >> BestList.new
-          echo "$selected_bestips" >> BestList.new
 
           # Remove duplicates
           awk '!seen[$0]++' BestList.new > BestList.new.tmp && mv BestList.new.tmp BestList.new

@@ -1,7 +1,7 @@
 name: Update CF-BestIPs
 on:
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -60,7 +60,7 @@ jobs:
 
           git checkout -b "$BRANCH"
           git add "${{ matrix.config.name }}"
-          git commit -m "Update ${{ matrix.config.name }} $COMMIT_TIME" || true
+          git commit -m "🤖 Update ${{ matrix.config.name }} $COMMIT_TIME" || true
           retry git push origin "$BRANCH"
 
           echo "Syncing main branch..."

@@ -4,7 +4,6 @@ on:
     - cron: '0 */12 * * *'
   workflow_dispatch:
 
-# 防止并发运行导致 merge 冲突
 concurrency:
   group: update-cf-bestips
   cancel-in-progress: false
@@ -17,9 +16,9 @@ jobs:
       matrix:
         config:
           - name: CF-BestIPs-A
-            url: https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4
+            url: 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4'
           - name: CF-BestIPs-B
-            url: https://cf.090227.xyz/CloudFlareYes
+            url: 'https://cf.090227.xyz/CloudFlareYes'
 
     steps:
       - name: Checkout repository
@@ -30,8 +29,6 @@ jobs:
       - name: Update and Merge ${{ matrix.config.name }}
         run: |
           set -e
-
-          # 重试函数
           retry() {
             local n=0
             local max=3
@@ -47,61 +44,43 @@ jobs:
             done
           }
 
-          NAME="${{ matrix.config.name }}"
-          URL="${{ matrix.config.url }}"
-          BRANCH="update-$NAME-$(date +%s)"
-          COMMIT_TIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
+          echo "Fetching IPs from: ${{ matrix.config.url }}"
+          IPS=$(retry curl -s -f --connect-timeout 10 --retry 2 --header "Cache-Control: no-cache" "${{ matrix.config.url }}" | \
+                grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-fA-F:]+:+)+[0-9a-fA-F]+' | sort -u) || { echo "Failed to fetch IPs"; exit 1; }
+          [ -n "$IPS" ] || { echo "Empty IP list"; exit 1; }
 
-          echo "Fetching IPs from: $URL"
-          IPS=$(retry curl -s -f --connect-timeout 10 --retry 2 --header "Cache-Control: no-cache" "$URL") || {
-            echo "Failed to fetch IPs"
-            exit 1
-          }
+          echo "$IPS" | awk '{print $0":8443"}' > "${{ matrix.config.name }}"
+          [ -s "${{ matrix.config.name }}" ] || { echo "Empty processed file"; exit 1; }
+          echo "${{ matrix.config.name }} updated, total lines: $(wc -l < "${{ matrix.config.name }})"
 
-          # 仅匹配完整 IPv4 或 IPv6 行
-          echo "$IPS" | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$|^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$' | sort -u > temp_ips
-          [ -s temp_ips ] || { echo "Empty IP list after filtering"; exit 1; }
-
-          awk '{print $0":8443"}' temp_ips > "$NAME"
-          [ -s "$NAME" ] || { echo "Failed to generate $NAME"; exit 1; }
-
-          echo "$NAME updated, total lines: $(wc -l < "$NAME")"
-
-          # Git 配置
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
+          BRANCH="update-${{ matrix.config.name }}-$(date +%s)"
 
-          # 创建并切换到新分支
+          # 提前计算时间，避免 $(...) 在 commit -m 中失效
+          COMMIT_TIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
+
           git checkout -b "$BRANCH"
-          git add "$NAME"
-          git commit -m "Update $NAME $COMMIT_TIME" || echo "Nothing to commit"
-
-          # 推送到远程
+          git add "${{ matrix.config.name }}"
+          git commit -m "Update ${{ matrix.config.name }} $COMMIT_TIME" || true
           retry git push origin "$BRANCH"
 
-          # 切换回 main 并同步
           echo "Syncing main branch..."
           git fetch origin main
           git checkout main
           git reset --hard origin/main
 
-          # 合并（无快进）
           if git merge --no-ff "$BRANCH" -m "Merge $BRANCH into main"; then
             retry git push origin main --force-with-lease
             echo "Successfully merged $BRANCH into main"
           else
             echo "Merge conflict detected. Aborting merge."
             git merge --abort
-            exit 1
           fi
 
-          # 清理旧远程分支
           echo "Cleaning old remote branches..."
           git fetch --prune
-          for branch in $(git branch -r | grep 'origin/update-' | sed 's|origin/||' || true); do
+          for branch in $(git branch -r | grep 'origin/update-' | sed 's|origin/||'); do
             echo "Deleting remote branch: $branch"
             git push origin --delete "$branch" || true
           done
-
-          # 清理临时文件
-          rm -f temp_ips

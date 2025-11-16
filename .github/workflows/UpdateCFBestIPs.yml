@@ -11,7 +11,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-         list:
+        list:
            - name: CF-BestIPs-A
              url: 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4'
            - name: CF-BestIPs-B
@@ -80,4 +80,3 @@ jobs:
             echo "Deleting remote branch: $branch"
             git push origin --delete "$branch" || true
           done 
-          shell: /usr/bin/bash -e {0}

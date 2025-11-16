@@ -2,20 +2,20 @@ name: Update CF-BestIPs
 
 on:
   schedule:
-    - cron: '0 */1 * * *'
+    - cron: '0 */12 * * *'
   workflow_dispatch:
 
 jobs:
   update-ips:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 1  # ✅ 顺序执行，避免 push 冲突
+      max-parallel: 1
       matrix:
-        list:
-          - name: CF-BestIPs-A
-            url: 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4'
-          - name: CF-BestIPs-B
-            url: 'https://cf.090227.xyz/CloudFlareYes'
+         list:
+           - name: CF-BestIPs-A
+             url: 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4'
+           - name: CF-BestIPs-B
+             url: 'https://cf.090227.xyz/CloudFlareYes'
 
     steps:
       - name: Checkout repository
@@ -79,5 +79,5 @@ jobs:
           for branch in $(git branch -r | grep 'origin/update-' | sed 's|origin/||'); do
             echo "Deleting remote branch: $branch"
             git push origin --delete "$branch" || true
-          done
-        shell: /usr/bin/bash -e {0}
+          done 
+          shell: /usr/bin/bash -e {0}

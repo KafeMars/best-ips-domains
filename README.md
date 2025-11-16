@@ -1,3 +1,3 @@
-优选IP&Domains：[BestList](https://raw.githubusercontent.com/kafemars/best-ips-domains/refs/heads/main/BestList)
+优选IP&Domains：[BestIPs](https://github.com/KafeMars/best-ips-domains/blob/main/cf-bestips.txt)
 
 优选反代IP：[BestProxyIPs](https://raw.githubusercontent.com/kafemars/best-ips-domains/refs/heads/main/BestProxyIPs)

@@ -51,13 +51,11 @@ jobs:
 
           echo "$IPS" | awk '{print $0":8443"}' > "${{ matrix.config.name }}"
           [ -s "${{ matrix.config.name }}" ] || { echo "Empty processed file"; exit 1; }
-          echo "${{ matrix.config.name }} updated, total lines: $(wc -l < "${{ matrix.config.name }})"
+          echo "${{ matrix.config.name }} updated, total lines: $(wc -l < "${{ matrix.config.name }}")"
 
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           BRANCH="update-${{ matrix.config.name }}-$(date +%s)"
-
-          # 提前计算时间，避免 $(...) 在 commit -m 中失效
           COMMIT_TIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
 
           git checkout -b "$BRANCH"

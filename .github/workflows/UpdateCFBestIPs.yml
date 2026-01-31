@@ -18,7 +18,7 @@ jobs:
           - name: CF-BestIPs-A
             url: 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4'
           - name: CF-BestIPs-B
-            url: 'https://cf.090227.xyz/CloudFlareYes'
+            url: 'https://vps789.com/public/sum/cfIpTop20'
 
     steps:
       - name: Checkout repository

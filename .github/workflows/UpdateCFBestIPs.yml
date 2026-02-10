@@ -17,7 +17,9 @@ jobs:
         config:
           - name: CF-BestIPs-A
             url: 'https://www.wetest.vip/api/cf2dns/get_cloudflare_ip?key=o1zrmHAF&type=v4'
-
+          - name: CF-BestIPs-B
+            url: 'https://cf.090227.xyz/CloudFlareYes'
+            
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -4,4 +4,4 @@
 159.60.146.81  #F5 Networks SARL
 159.60.146.82 #F5 Networks SARL
 20.98.89.51 #微软云 Azure
-// 说明：反代IP不能用于优先IP
+# 说明：反代IP不能用于优先IP

@@ -4,11 +4,14 @@
 159.60.146.81  #F5 Networks SARL
 159.60.146.82 #F5 Networks SARL
 20.98.89.51 #微软云 Azure
+142.171.171.35 #MULTACOM CORPORATION
 159.89.91.17 #DigitalOcean, LLC
 143.47.96.200 #Oracle Corporation
 172.174.11.248 #微软云 Azure
 141.148.93.235 #Oracle Corporation
 4.155.83.212  #微软云 Azure
 172.208.36.45 #微软云 Azure
-
+75.127.12.19 #HostPapa
+23.94.56.22 #HostPapa
+147.224.58.153 #Oracle Corporation
 # 说明：反代IP不能用于优先IP

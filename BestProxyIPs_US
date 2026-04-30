@@ -8,6 +8,7 @@
 143.47.96.200 #Oracle Corporation
 172.174.11.248 #微软云 Azure
 141.148.93.235 #Oracle Corporation
+4.155.83.212  #微软云 Azure
 172.208.36.45 #微软云 Azure
 
 # 说明：反代IP不能用于优先IP

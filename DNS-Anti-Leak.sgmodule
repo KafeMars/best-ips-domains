@@ -1,25 +1,22 @@
-#!name=高级 DNS 防泄露模块
-#!desc=强制全局使用加密 DNS (DoH/DoT)，彻底剥离系统默认的运营商 DNS，并禁用 IPv6 解析以阻断底层网络泄露路径。
+#!name=高级 DNS 防泄露与分流优化模块
+#!desc=采用全链路 DoH 加密防劫持，主 DNS 负责国内 CDN 极速解析，备用 DNS 采用镜像防泄露，并禁用 IPv6。
 #!author=Security Optimization
 
 [General]
-# 1. 核心防护：强制覆盖主配置的 DNS 服务器
-# 剔除存在劫持和泄露风险的 "system" (系统默认/本地运营商 DNS)
-# 强制所有 DNS 请求通过 HTTPS (DoH) 或 TLS (DoT) 加密隧道传输
-dns-server = https://1.1.1.1/dns-query, https://8.8.8.8/dns-query, tls://dns.google
+# 1. 主 DNS：使用国内互联网巨头的高可用 DoH
+# 作用：全链路加密防止本地运营商（ISP）明文劫持和污染，同时完美兼顾国内 App 的 CDN 节点精准解析（保证国内速度）。
+dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query
 
-# 2. 备用安全链路
-# 当主加密 DNS 响应延迟时使用的后备服务器，同样采用高强度加密
-fallback-dns-server = https://1.0.0.1/dns-query, tls://1.1.1.1, tls://8.8.4.4
+# 2. 备用安全链路：使用您提供的可用 DoH 镜像
+# 作用：配合代理分流规则，当解析海外域名时，作为高强度的加密后备链路，防止 DNS 泄露。
+fallback-dns-server = https://doh.com.kg/gle-e3s6cbs4kk668, https://doh.com.kg/cf-e3s6cbs4kk668
 
 # 3. 封堵 IPv6 泄露漏洞
-# 绝大多数 VPN/代理协议对 IPv4 支持完美，但对 IPv6 流量接管不佳。
-# 开启此选项将强制禁用本地 IPv6 解析，防止流量绕过代理隧道直连暴露真实位置
+# 绝大多数 VPN/代理协议对 IPv4 支持完美，但对 IPv6 流量接管不佳。开启此选项强制禁用本地 IPv6 解析。
 ipv6 = false
 
 [Rule]
 # 4. 兜底策略：常见 DNS 泄露探针与隐私测试节点强制走代理
-# 配合底层的加密 DNS 机制，确保在进行隐私测试或访问安全审计节点时，不产生任何本地网络交互
 DOMAIN-KEYWORD, dnsleak, PROXY
 DOMAIN-SUFFIX, dnsleaktest.com, PROXY
 DOMAIN-SUFFIX, ipleak.net, PROXY

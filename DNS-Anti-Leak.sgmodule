@@ -9,7 +9,7 @@ dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query
 
 # 2. 备用安全链路：使用您提供的可用 DoH 镜像
 # 作用：配合代理分流规则，当解析海外域名时，作为高强度的加密后备链路，防止 DNS 泄露。
-fallback-dns-server = https://doh.com.kg/gle-e3s6cbs4kk668, https://doh.com.kg/cf-e3s6cbs4kk668
+fallback-dns-server = https://doh.com.kg/gle-dns, https://doh.com.kg/cf-dns
 
 # 3. 封堵 IPv6 泄露漏洞
 # 绝大多数 VPN/代理协议对 IPv4 支持完美，但对 IPv6 流量接管不佳。开启此选项强制禁用本地 IPv6 解析。

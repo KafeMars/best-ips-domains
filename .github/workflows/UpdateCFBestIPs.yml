@@ -26,9 +26,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update and Merge ${{ matrix.config.name }}
+      - name: Fetch and Process IPs
         run: |
           set -e
+          
           retry() {
             local n=0
             local max=3
@@ -36,25 +37,42 @@ jobs:
             until "$@"; do
               n=$((n+1))
               if [ $n -ge $max ]; then
-                echo "Command failed after $n attempts: $*"
-                return 1
+                exit 1
               fi
-              echo "Retry $n/$max after $delay seconds..."
               sleep $delay
             done
           }
 
-          echo "Fetching IPs from: ${{ matrix.config.url }}"
-          IPS=$(retry curl -s -f --connect-timeout 10 --retry 2 --header "Cache-Control: no-cache" "${{ matrix.config.url }}" | \
-                grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-fA-F:]+:+)+[0-9a-fA-F]+' | sort -u) || { echo "Failed to fetch IPs"; exit 1; }
-          [ -n "$IPS" ] || { echo "Empty IP list"; exit 1; }
+          RAW_DATA=$(retry curl -s -f --connect-timeout 10 --retry 2 --header "Cache-Control: no-cache" "${{ matrix.config.url }}")
+          
+          echo "$RAW_DATA" | grep -Eo '\b(25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3}\b' | sort -u > raw_ips.txt
+          
+          if [ ! -s raw_ips.txt ]; then
+            exit 1
+          fi
+          
+          awk '{print $0":8443"}' raw_ips.txt > "${{ matrix.config.name }}"
 
-          echo "$IPS" | awk '{print $0":8443"}' > "${{ matrix.config.name }}"
-          [ -s "${{ matrix.config.name }}" ] || { echo "Empty processed file"; exit 1; }
-          echo "${{ matrix.config.name }} updated, total lines: $(wc -l < "${{ matrix.config.name }}")"
+      - name: Commit and Merge
+        run: |
+          set -e
+          
+          retry() {
+            local n=0
+            local max=3
+            local delay=5
+            until "$@"; do
+              n=$((n+1))
+              if [ $n -ge $max ]; then
+                exit 1
+              fi
+              sleep $delay
+            done
+          }
 
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
+          
           BRANCH="update-${{ matrix.config.name }}-$(date +%s)"
           COMMIT_TIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
 
@@ -63,22 +81,17 @@ jobs:
           git commit -m "🤖 Update ${{ matrix.config.name }} $COMMIT_TIME" || true
           retry git push origin "$BRANCH"
 
-          echo "Syncing main branch..."
           git fetch origin main
           git checkout main
           git reset --hard origin/main
 
           if git merge --no-ff "$BRANCH" -m "Merge $BRANCH into main"; then
             retry git push origin main --force-with-lease
-            echo "Successfully merged $BRANCH into main"
           else
-            echo "Merge conflict detected. Aborting merge."
             git merge --abort
           fi
 
-          echo "Cleaning old remote branches..."
           git fetch --prune
           for branch in $(git branch -r | grep 'origin/update-' | sed 's|origin/||'); do
-            echo "Deleting remote branch: $branch"
             git push origin --delete "$branch" || true
           done

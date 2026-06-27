@@ -7,7 +7,7 @@
 dns-server = quic://dns.alidns.com:853, quic://doh.pub:853, https://dns.alidns.com/dns-query, https://doh.pub/dns-query
 
 # 2. 备用与海外：自建 DoH 镜像，彻底阻断 ISP 嗅探
-fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare
+fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare,https://doh.com.kg/gle-ovmFVv8bd6,https://doh.com.kg/cf-ovmFVv8bd6
 
 # 3. 性能微调与防泄露
 ipv6 = false
@@ -30,6 +30,7 @@ tplogin.cn = server:syslib
 [Rule]
 # 7. 自建节点保护：防止自建 DoH 遭遇 SNI 阻断
 DOMAIN, dogdns.xyz, PROXY
+DOMAIN, doh.com.kg, PROXY
 
 # 8. 精细化分流与防泄露
 DOMAIN-KEYWORD, dnsleak, PROXY

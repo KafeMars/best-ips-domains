@@ -7,7 +7,7 @@
 dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query
 
 # 2. 备用安全链路：使用自建可用 DoH 镜像，实现极致隐私
-fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare
+fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare,https://doh.com.kg/gle-ovmFVv8bd6,https://doh.com.kg/cf-ovmFVv8bd6
 
 # 3. 封堵 IPv6 泄露漏洞
 ipv6 = false
@@ -18,6 +18,7 @@ hijack-dns = 8.8.8.8:53, 8.8.4.4:53, 1.1.1.1:53, 114.114.114.114:53
 [Rule]
 # 5. 自建节点保护：强制自建 DoH 域名走代理，防止 TLS 握手阶段的 SNI 被 GFW 嗅探阻断
 DOMAIN, dogdns.xyz, PROXY
+DOMAIN, doh.com.kg, PROXY
 
 # 6. 兜底策略：常见 DNS 泄露探针与隐私测试节点强制走代理
 DOMAIN-KEYWORD, dnsleak, PROXY

@@ -17,7 +17,7 @@ hijack-dns = 8.8.8.8:53, 8.8.4.4:53, 1.1.1.1:53, 114.114.114.114:53
 
 [Rule]
 # 5. 自建节点保护：强制自建 DoH 域名走代理，防止 TLS 握手阶段的 SNI 被 GFW 嗅探阻断
-DOMAIN, dns.xyz, PROXY
+DOMAIN, dogdns.xyz, PROXY
 
 # 6. 兜底策略：常见 DNS 泄露探针与隐私测试节点强制走代理
 DOMAIN-KEYWORD, dnsleak, PROXY

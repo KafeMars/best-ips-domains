@@ -9,7 +9,7 @@ dns-server = quic://dns.alidns.com:853, quic://doh.pub:853, https://223.5.5.5/dn
 
 # 2. 备用与海外：DoH 镜像 + 异步解析机制
 # 当代理环境生效时，确保海外域名通过加密镜像解析，彻底阻断 ISP 嗅探
-fallback-dns-server = https://doh.com.kg/gle-ovmFVv8bd6, https://doh.com.kg/cf-ovmFVv8bd6
+fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare
 
 # 3. 性能微调
 # 禁用 IPv6 减少解析开销；开启 DNS 并发查询（Shadowrocket 默认逻辑）

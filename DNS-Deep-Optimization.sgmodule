@@ -1,38 +1,46 @@
 #!name=DNS 深度优化模块 (DoQ & 静态增强)
-#!desc=集成 DoQ 协议、静态 Hosts 映射、精细化分流解析及广告黑洞，实现极致响应与隐私闭环。
+#!desc=集成 DoQ 并发机制、53 端口劫持、局域网直连豁免及底层规则广告黑洞，实现极致响应与隐私闭环。
 #!author=Security Optimization Pro
 
 [General]
-# 1. 核心解析：优先使用 DoQ (DNS over QUIC)
-# 阿里云与腾讯云的 DoQ 在国内具备极佳的响应曲线
-dns-server = quic://dns.alidns.com:853, quic://doh.pub:853, https://223.5.5.5/dns-query
+# 1. 核心解析：DoQ 与 DoH 混合并发池。利用并发查询特性，取最快响应结果，规避单一 UDP 协议被 QoS 的风险
+dns-server = quic://dns.alidns.com:853, quic://doh.pub:853, https://dns.alidns.com/dns-query, https://doh.pub/dns-query
 
-# 2. 备用与海外：DoH 镜像 + 异步解析机制
-# 当代理环境生效时，确保海外域名通过加密镜像解析，彻底阻断 ISP 嗅探
+# 2. 备用与海外：自建 DoH 镜像，彻底阻断 ISP 嗅探
 fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare
 
-# 3. 性能微调
-# 禁用 IPv6 减少解析开销；开启 DNS 并发查询（Shadowrocket 默认逻辑）
+# 3. 性能微调与防泄露
 ipv6 = false
-# 强制所有解析结果遵循模块定义的 DNS 逻辑，不回退到系统 DNS
 dns-direct-system = false
 
+# 4. 强制底层接管 53 端口
+hijack-dns = 8.8.8.8:53, 8.8.4.4:53, 1.1.1.1:53, 114.114.114.114:53
+
 [Host]
-# 4. 静态映射 (高频加速)
-# 将您的代理服务器域名及其对应的固定 IP 写在这里（示例）
+# 5. 局域网与路由器后台直连释放 (避免网关地址被错误代理导致无法访问后台)
+router.asus.com = server:syslib
+*.router.asus.com = server:syslib
+*.miwifi.com = server:syslib
+tplogin.cn = server:syslib
+*.tplogin.cn = server:syslib
+
+# 6. 静态映射 (保留您的自定义节点需求，按需取消注释)
 # my-proxy-node.com = 1.2.3.4
-# 屏蔽高频跟踪域名（广告黑洞）
-*.doubleclick.net = 127.0.0.1
-*.google-analytics.com = 127.0.0.1
 
 [Rule]
-# 5. 精细化分流与防泄露
-# 强制特定的隐私敏感域名走加密 DNS 解析并走代理
+# 7. 自建节点保护：防止自建 DoH 遭遇 SNI 阻断
+DOMAIN, dogdns.xyz, PROXY
+
+# 8. 精细化分流与防泄露
 DOMAIN-KEYWORD, dnsleak, PROXY
 DOMAIN-SUFFIX, dnsleaktest.com, PROXY
 DOMAIN-SUFFIX, ipleak.net, PROXY
 DOMAIN-SUFFIX, browserleaks.com, PROXY
 DOMAIN-SUFFIX, pixelscan.net, PROXY
+DOMAIN-SUFFIX, whoer.net, PROXY
 
-# 拦截常见的 DNS 劫持重定向探针
+# 9. 广告黑洞与探针阻断 (使用 REJECT 替代 Host 127.0.0.1，避免无谓的网络连接超时消耗)
 DOMAIN-SUFFIX, localdns.com, REJECT
+DOMAIN-SUFFIX, doubleclick.net, REJECT
+DOMAIN-SUFFIX, google-analytics.com, REJECT
+DOMAIN-SUFFIX, admob.com, REJECT

@@ -19,6 +19,16 @@ jobs:
             url: 'https://bestcf.pages.dev/xinyitang3/ipv4.txt'
           - name: CF-BestIPs-B
             url: 'https://bestcf.pages.dev/luoli/all.txt'
+          - name: CF-BestIPs-C
+            url: 'https://bestcf.pages.dev/luoli/all.txt'
+          - name: CF-BestIPs-US
+            url: 'https://bestcf.pages.dev/s5gy/us.txt'
+          - name: CF-BestIPs-HK
+            url: 'https://bestcf.pages.dev/tiancheng/hk.txt'
+          - name: CF-BestIPs-SG
+            url: 'https://bestcf.pages.dev/tiancheng/sg.txt'
+          - name: CF-BestIPs-JP
+            url: 'https://bestcf.pages.dev/tiancheng/jp.txt'
             
     steps:
       - name: Checkout repository

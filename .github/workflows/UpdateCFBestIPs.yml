@@ -51,7 +51,7 @@ jobs:
             exit 1
           fi
           
-          awk '{print $0":8443"}' raw_ips.txt > "${{ matrix.config.name }}"
+          awk '{print $0":443"}' raw_ips.txt > "${{ matrix.config.name }}"
 
       - name: Commit and Merge
         run: |

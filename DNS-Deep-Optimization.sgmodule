@@ -1,46 +1,46 @@
 #!name=DNS 深度优化模块 (DoQ & 静态增强)
-#!desc=集成 DoQ 并发机制、53 端口劫持、局域网直连豁免及底层规则广告黑洞，实现极致响应与隐私闭环。
+#!desc=集成 DoQ/DoT/DoH 混合并发池、全量 53 端口劫持、静态 Bootstrap 引导、局域网与 Portal 认证豁免及广告探针黑洞。
 #!author=Security Optimization Pro
 
 [General]
-# 1. 核心解析：DoQ 与 DoH 混合并发池。利用并发查询特性，取最快响应结果，规避单一 UDP 协议被 QoS 的风险
-dns-server = quic://dns.alidns.com:853, quic://doh.pub:853, https://dns.alidns.com/dns-query, https://doh.pub/dns-query
-
-# 2. 备用与海外：自建 DoH 镜像，彻底阻断 ISP 嗅探
-fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare,https://doh.com.kg/cloudflare,https://doh.com.kg/google
-
-# 3. 性能微调与防泄露
+dns-server = quic://dns.alidns.com:853, tls://dot.pub:853, https://dns.alidns.com/dns-query, https://doh.pub/dns-query
+fallback-dns-server = https://doh.dogdns.xyz/google, https://doh.dogdns.xyz/cloudflare, https://doh.com.kg/cloudflare, https://doh.com.kg/google
 ipv6 = false
 dns-direct-system = false
-
-# 4. 强制底层接管 53 端口
-hijack-dns = 8.8.8.8:53, 8.8.4.4:53, 1.1.1.1:53, 114.114.114.114:53
+hijack-dns = *:53
 
 [Host]
-# 5. 局域网与路由器后台直连释放 (避免网关地址被错误代理导致无法访问后台)
+dns.alidns.com = 223.5.5.5, 223.6.6.6
+doh.pub = 1.12.12.12, 120.53.53.53
+dot.pub = 1.12.12.12, 120.53.53.53
+captive.apple.com = server:syslib
+*.local = server:syslib
+*.lan = server:syslib
 router.asus.com = server:syslib
 *.router.asus.com = server:syslib
+miwifi.com = server:syslib
 *.miwifi.com = server:syslib
 tplogin.cn = server:syslib
 *.tplogin.cn = server:syslib
 
-# 6. 静态映射 (保留您的自定义节点需求，按需取消注释)
-# my-proxy-node.com = 1.2.3.4
-
 [Rule]
-# 7. 自建节点保护：防止自建 DoH 遭遇 SNI 阻断
-DOMAIN, dogdns.xyz, PROXY
-DOMAIN, doh.com.kg, PROXY
-
-# 8. 精细化分流与防泄露
+DOMAIN, captive.apple.com, DIRECT
+DOMAIN-SUFFIX, local, DIRECT
+DOMAIN-SUFFIX, lan, DIRECT
+DOMAIN-SUFFIX, router.asus.com, DIRECT
+DOMAIN-SUFFIX, miwifi.com, DIRECT
+DOMAIN-SUFFIX, tplogin.cn, DIRECT
+DOMAIN-SUFFIX, dogdns.xyz, PROXY
+DOMAIN-SUFFIX, doh.com.kg, PROXY
 DOMAIN-KEYWORD, dnsleak, PROXY
 DOMAIN-SUFFIX, dnsleaktest.com, PROXY
+DOMAIN-SUFFIX, bash.ws, PROXY
 DOMAIN-SUFFIX, ipleak.net, PROXY
+DOMAIN-SUFFIX, airvpn.org, PROXY
 DOMAIN-SUFFIX, browserleaks.com, PROXY
+DOMAIN-SUFFIX, browserleaks.org, PROXY
 DOMAIN-SUFFIX, pixelscan.net, PROXY
 DOMAIN-SUFFIX, whoer.net, PROXY
-
-# 9. 广告黑洞与探针阻断 (使用 REJECT 替代 Host 127.0.0.1，避免无谓的网络连接超时消耗)
 DOMAIN-SUFFIX, localdns.com, REJECT
 DOMAIN-SUFFIX, doubleclick.net, REJECT
 DOMAIN-SUFFIX, google-analytics.com, REJECT

@@ -1,32 +1,27 @@
 #!name=高级 DNS 防泄露与分流优化模块
-#!desc=采用全链路 DoH 加密防劫持，底层接管 53 端口，备用 DNS 采用自建镜像防泄露，强制代理自建节点以隐藏 SNI。
+#!desc=采用全链路 DoH 加密防劫持，底层全量接管 53 端口，静态引导防冷启动死锁，强制代理自建节点以隐藏 SNI。
 #!author=Security Optimization
 
 [General]
-# 1. 主 DNS：使用国内互联网巨头的高可用 DoH，保证国内 CDN 速度与防污染
-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query
-
-# 2. 备用安全链路：使用自建可用 DoH 镜像，实现极致隐私
-fallback-dns-server = https://doh.dogdns.xyz/google,https://doh.dogdns.xyz/cloudflare,https://doh.com.kg/cloudflare,https://doh.com.kg/google
-
-# 3. 封堵 IPv6 泄露漏洞
+dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query, https://223.5.5.5/dns-query, https://1.12.12.12/dns-query
+fallback-dns-server = https://doh.dogdns.xyz/google, https://doh.dogdns.xyz/cloudflare, https://doh.com.kg/cloudflare, https://doh.com.kg/google
 ipv6 = false
+hijack-dns = *:53
 
-# 4. 全链路劫持：强制接管所有本地应用硬编码的 53 端口直连请求，防止应用绕过代理
-hijack-dns = 8.8.8.8:53, 8.8.4.4:53, 1.1.1.1:53, 114.114.114.114:53
+[Host]
+dns.alidns.com = 223.5.5.5, 223.6.6.6
+doh.pub = 1.12.12.12, 120.53.53.53
 
 [Rule]
-# 5. 自建节点保护：强制自建 DoH 域名走代理，防止 TLS 握手阶段的 SNI 被 GFW 嗅探阻断
-DOMAIN, dogdns.xyz, PROXY
-DOMAIN, doh.com.kg, PROXY
-
-# 6. 兜底策略：常见 DNS 泄露探针与隐私测试节点强制走代理
+DOMAIN-SUFFIX, dogdns.xyz, PROXY
+DOMAIN-SUFFIX, doh.com.kg, PROXY
 DOMAIN-KEYWORD, dnsleak, PROXY
 DOMAIN-SUFFIX, dnsleaktest.com, PROXY
+DOMAIN-SUFFIX, bash.ws, PROXY
 DOMAIN-SUFFIX, ipleak.net, PROXY
+DOMAIN-SUFFIX, airvpn.org, PROXY
 DOMAIN-SUFFIX, browserleaks.com, PROXY
+DOMAIN-SUFFIX, browserleaks.org, PROXY
 DOMAIN-SUFFIX, pixelscan.net, PROXY
 DOMAIN-SUFFIX, whoer.net, PROXY
-
-# 7. 拦截常见的 DNS 劫持重定向探针
 DOMAIN-SUFFIX, localdns.com, REJECT

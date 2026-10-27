@@ -37,7 +37,7 @@ tplogin.cn = server:syslib
 
 [Rule]
 # --- 1. ECH 核心链路与节点域名防回环保护 ---
-# 请将 your-domain-a.com 替换为您实际搭建 ECH 节点的域名，防止代理流量回环死锁
+# 添加实际使用的 ECH 节点域名，防止代理流量回环死锁
 DOMAIN-SUFFIX, your-domain-a.com, DIRECT
 DOMAIN-SUFFIX, cloudflare-ech.com, DIRECT
 

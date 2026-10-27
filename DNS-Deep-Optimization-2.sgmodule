@@ -1,0 +1,64 @@
+#!name=DNS 深度优化模块 (ECH 专享 & 零死锁增强版)
+#!desc=专为 Cloudflare ECH 链路优化：保留阿里 DoQ/DoH 获取 Type 65 记录、移除第三方不可信 DoH、采用权威 IP-DoH 防死锁、含局域网豁免与防泄漏保护。
+#!author=Security Optimization Pro (ECH Tuned)
+
+[General]
+# 仅使用支持完整返回 HTTPS (Type 65) ECH 参数的阿里 DoQ/DoH，避免 dot.pub/doh.pub 抢答剥离 ECH 记录
+dns-server = https://dns.alidns.com/dns-query, quic://dns.alidns.com:853
+# 使用无需二次域名解析的官方 IP 型 DoH 作为回退，彻底消除启动时的代理死锁回环
+fallback-dns-server = https://1.1.1.1/dns-query, https://8.8.8.8/dns-query, https://9.9.9.9/dns-query
+ipv6 = false
+dns-direct-system = false
+hijack-dns = *:53
+
+[Host]
+# 加密 DNS 静态 Bootstrap 引导，防止解析 DNS 服务器自身时产生死循环
+dns.alidns.com = 223.5.5.5, 223.6.6.6
+# 苹果 Wi-Fi 认证与局域网设备交由系统原生 DNS 解析
+captive.apple.com = server:syslib
+*.local = server:syslib
+*.lan = server:syslib
+router.asus.com = server:syslib
+*.router.asus.com = server:syslib
+miwifi.com = server:syslib
+*.miwifi.com = server:syslib
+tplogin.cn = server:syslib
+*.tplogin.cn = server:syslib
+
+[Rule]
+# --- ECH 核心域名与您的源站域名防回环保护 ---
+# 请将下方的 your-domain-a.com 替换为您实际托管在 Cloudflare 的域名 A
+DOMAIN-SUFFIX, your-domain-a.com, DIRECT
+DOMAIN-SUFFIX, cloudflare-ech.com, DIRECT
+
+# --- 局域网与 Portal 认证直连豁免 ---
+DOMAIN, captive.apple.com, DIRECT
+DOMAIN-SUFFIX, local, DIRECT
+DOMAIN-SUFFIX, lan, DIRECT
+DOMAIN-SUFFIX, router.asus.com, DIRECT
+DOMAIN-SUFFIX, miwifi.com, DIRECT
+DOMAIN-SUFFIX, tplogin.cn, DIRECT
+
+# --- 权威 Fallback DoH 强制走代理隧道（防污染） ---
+IP-CIDR, 1.1.1.1/32, PROXY, no-resolve
+IP-CIDR, 1.0.0.1/32, PROXY, no-resolve
+IP-CIDR, 8.8.8.8/32, PROXY, no-resolve
+IP-CIDR, 8.8.4.4/32, PROXY, no-resolve
+IP-CIDR, 9.9.9.9/32, PROXY, no-resolve
+
+# --- DNS / WebRTC 隐私泄漏检测站强制走代理 ---
+DOMAIN-KEYWORD, dnsleak, PROXY
+DOMAIN-SUFFIX, dnsleaktest.com, PROXY
+DOMAIN-SUFFIX, bash.ws, PROXY
+DOMAIN-SUFFIX, ipleak.net, PROXY
+DOMAIN-SUFFIX, airvpn.org, PROXY
+DOMAIN-SUFFIX, browserleaks.com, PROXY
+DOMAIN-SUFFIX, browserleaks.org, PROXY
+DOMAIN-SUFFIX, pixelscan.net, PROXY
+DOMAIN-SUFFIX, whoer.net, PROXY
+
+# --- 常见本地 DNS 探测与广告探针黑洞 ---
+DOMAIN-SUFFIX, localdns.com, REJECT
+DOMAIN-SUFFIX, doubleclick.net, REJECT
+DOMAIN-SUFFIX, google-analytics.com, REJECT
+DOMAIN-SUFFIX, admob.com, REJECT

@@ -33,7 +33,7 @@ tplogin.cn = server:syslib
 
 [Rule]
 # --- ECH 节点域名与公共外层 SNI 防回环保护 ---
-# --- 可以添加自建或第三方 ECH 节点域名 ---
+# 添加实际使用的 ECH 节点域名，防止代理流量回环死锁
 DOMAIN-SUFFIX, cloudflare-ech.com, DIRECT
 
 # --- 局域网与 Portal 认证直连 ---

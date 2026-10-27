@@ -1,20 +1,60 @@
-#!name=高级 DNS 防泄露与分流优化模块
-#!desc=采用全链路 DoH 加密防劫持，底层全量接管 53 端口，静态引导防冷启动死锁，强制代理自建节点以隐藏 SNI。
-#!author=Security Optimization
+#!name=高级 DNS 防泄露与分流优化模块 (ECH 协同增强版)
+#!desc=全链路 DoH/DoQ 加密防劫持，剔除同源冗余请求，底层接管 53 端口，自建 DoH 静态引导防死锁并强制代理隐藏 SNI，内置 ECH 防回环与 HTTPDNS 拦截。
+#!author=Security Optimization Pro
 
 [General]
-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query, https://223.5.5.5/dns-query, https://1.12.12.12/dns-query
-fallback-dns-server = https://doh.dogdns.xyz/google, https://doh.dogdns.xyz/cloudflare, https://doh.com.kg/cloudflare, https://doh.com.kg/google
+# 主 DNS：采用阿里 IP-DoH（免除前置域名解析）与域名 DoH/DoQ 混合池，确保 100% 完整获取 Cloudflare ECH (Type 65) 记录
+dns-server = https://223.5.5.5/dns-query, https://223.6.6.6/dns-query, quic://dns.alidns.com:853
+# 回退 DNS：使用您的私有自建 DoH，配合下方 [Rule] 强制走代理隧道，对外完全隐藏自建域名 SNI
+fallback-dns-server = https://doh.dogdns.xyz/cloudflare, https://doh.dogdns.xyz/google, https://doh.com.kg/cloudflare, https://doh.com.kg/google
+# 禁用 IPv6 与系统原生直连 DNS，杜绝 IPv6 旁路泄露与 ISP 运营商 DNS 污染
 ipv6 = false
+dns-direct-system = false
+# 底层虚拟网卡全量接管所有发往任意 IP 53 端口的明文 DNS 请求
 hijack-dns = *:53
 
 [Host]
+# 1. 国内加密 DNS 静态引导（消除域名 DoQ/DoH 启动时的引导查询）
 dns.alidns.com = 223.5.5.5, 223.6.6.6
 doh.pub = 1.12.12.12, 120.53.53.53
 
+# 2. 自建私有 DoH 静态 Bootstrap 引导（防止向国内 DNS 查询自建域名导致隐私暴露与冷启动死锁）
+# 若自建 DoH 托管于 Cloudflare，可保持下方 CF 优选 IP；若部署于独立 VPS，请替换为对应 VPS 真实 IP
+doh.dogdns.xyz = 104.18.10.118, 104.18.11.118, 172.67.154.85
+doh.com.kg = 104.18.10.118, 104.18.11.118, 172.67.154.85
+
+# 3. 苹果 Captive Portal 认证与局域网私有域名交由系统原生 DNS 处理，避免 *:53 劫持导致断网
+captive.apple.com = server:syslib
+*.local = server:syslib
+*.lan = server:syslib
+*.home.arpa = server:syslib
+router.asus.com = server:syslib
+*.router.asus.com = server:syslib
+miwifi.com = server:syslib
+*.miwifi.com = server:syslib
+tplogin.cn = server:syslib
+*.tplogin.cn = server:syslib
+
 [Rule]
+# --- 1. ECH 核心链路与节点域名防回环保护 ---
+# 请将 your-domain-a.com 替换为您实际搭建 ECH 节点的域名 A，防止代理流量回环死锁
+DOMAIN-SUFFIX, your-domain-a.com, DIRECT
+DOMAIN-SUFFIX, cloudflare-ech.com, DIRECT
+
+# --- 2. 局域网与公共 Wi-Fi Portal 认证直连豁免 ---
+DOMAIN, captive.apple.com, DIRECT
+DOMAIN-SUFFIX, local, DIRECT
+DOMAIN-SUFFIX, lan, DIRECT
+DOMAIN-SUFFIX, home.arpa, DIRECT
+DOMAIN-SUFFIX, router.asus.com, DIRECT
+DOMAIN-SUFFIX, miwifi.com, DIRECT
+DOMAIN-SUFFIX, tplogin.cn, DIRECT
+
+# --- 3. 自建私有 DoH 强制走代理隧道（通过代理节点加密传输，对本地运营商彻底隐藏自建 DoH 的 SNI） ---
 DOMAIN-SUFFIX, dogdns.xyz, PROXY
 DOMAIN-SUFFIX, doh.com.kg, PROXY
+
+# --- 4. DNS / WebRTC / 指纹隐私检测站强制走代理 ---
 DOMAIN-KEYWORD, dnsleak, PROXY
 DOMAIN-SUFFIX, dnsleaktest.com, PROXY
 DOMAIN-SUFFIX, bash.ws, PROXY
@@ -24,4 +64,16 @@ DOMAIN-SUFFIX, browserleaks.com, PROXY
 DOMAIN-SUFFIX, browserleaks.org, PROXY
 DOMAIN-SUFFIX, pixelscan.net, PROXY
 DOMAIN-SUFFIX, whoer.net, PROXY
+DOMAIN-SUFFIX, creepjs.com, PROXY
+DOMAIN-SUFFIX, iphey.com, PROXY
+
+# --- 5. 拦截绕过 53 端口的应用层 HTTPDNS 探针与广告追踪 ---
 DOMAIN-SUFFIX, localdns.com, REJECT
+DOMAIN-KEYWORD, httpdns, REJECT
+DOMAIN-SUFFIX, httpdns.alicdn.com, REJECT
+DOMAIN-SUFFIX, httpdns.baidu.com, REJECT
+DOMAIN-SUFFIX, httpdns.bilivideo.com, REJECT
+DOMAIN-SUFFIX, httpdns.c.cdnhwc2.com, REJECT
+DOMAIN-SUFFIX, doubleclick.net, REJECT
+DOMAIN-SUFFIX, google-analytics.com, REJECT
+DOMAIN-SUFFIX, admob.com, REJECT

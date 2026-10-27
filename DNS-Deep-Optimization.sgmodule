@@ -33,8 +33,8 @@ tplogin.cn = server:syslib
 
 [Rule]
 # --- ECH 节点域名与公共外层 SNI 防回环保护 ---
-# 请将 your-domain-a.com 替换为您托管在 Cloudflare 的域名 A
-DOMAIN-SUFFIX, your-domain-a.com, DIRECT
+# 请将 your-domain-a.com 替换为您托管在 Cloudflare 的域名
+DOMAIN-SUFFIX, your-domain.com, DIRECT
 DOMAIN-SUFFIX, cloudflare-ech.com, DIRECT
 
 # --- 局域网与 Portal 认证直连 ---

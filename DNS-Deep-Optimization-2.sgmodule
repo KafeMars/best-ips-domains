@@ -27,8 +27,8 @@ tplogin.cn = server:syslib
 
 [Rule]
 # --- ECH 核心域名与您的源站域名防回环保护 ---
-# 请将下方的 your-domain-a.com 替换为您实际托管在 Cloudflare 的域名 A
-DOMAIN-SUFFIX, your-domain-a.com, DIRECT
+# 请将下方的 your-domain.com 替换为您实际托管在 Cloudflare 的域名
+DOMAIN-SUFFIX, your-domain.com, DIRECT
 DOMAIN-SUFFIX, cloudflare-ech.com, DIRECT
 
 # --- 局域网与 Portal 认证直连豁免 ---

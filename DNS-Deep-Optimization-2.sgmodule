@@ -1,5 +1,5 @@
 #!name=DNS 深度优化模块 (ECH 专享 & 零死锁增强版)
-#!desc=专为 Cloudflare ECH 链路优化：保留阿里 DoQ/DoH 获取 Type 65 记录、移除第三方不可信 DoH、采用权威 IP-DoH 防死锁、含局域网豁免与防泄漏保护。
+#!desc=专为 Cloudflare ECH 链路优化：保留阿里 DoQ/DoH 获取 Type 65 记录、采用权威 IP-DoH 防死锁、含局域网豁免与防泄漏保护。
 #!author=Security Optimization Pro (ECH Tuned)
 
 [General]

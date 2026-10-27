@@ -1,18 +1,26 @@
-#!name=DNS 深度优化模块 (DoQ & 静态增强)
-#!desc=集成 DoQ/DoT/DoH 混合并发池、全量 53 端口劫持、静态 Bootstrap 引导、局域网与 Portal 认证豁免及广告探针黑洞。
+#!name=DNS 深度优化模块 (自建 DoH & ECH 增强版)
+#!desc=集成阿里 DoQ/DoH 与自建私有 DoH 混合池、全量 53 端口劫持、自建 DoH 静态 Bootstrap 引导、ECH 防回环保护及防泄漏规则。
 #!author=Security Optimization Pro
 
 [General]
-dns-server = quic://dns.alidns.com:853, tls://dot.pub:853, https://dns.alidns.com/dns-query, https://doh.pub/dns-query
+# 主 DNS：保留对 HTTPS (Type 65) ECH 记录支持完善的阿里 DoQ 与 DoH，剔除易抢答空 ECH 记录的 dot.pub/doh.pub
+dns-server = quic://dns.alidns.com:853, https://dns.alidns.com/dns-query
+# 回退 DNS：使用私有自建 DoH 服务
 fallback-dns-server = https://doh.dogdns.xyz/google, https://doh.dogdns.xyz/cloudflare, https://doh.com.kg/cloudflare, https://doh.com.kg/google
 ipv6 = false
 dns-direct-system = false
 hijack-dns = *:53
 
 [Host]
+# 1. 国内公共加密 DNS 静态引导
 dns.alidns.com = 223.5.5.5, 223.6.6.6
-doh.pub = 1.12.12.12, 120.53.53.53
-dot.pub = 1.12.12.12, 120.53.53.53
+
+# 2. 自建私有 DoH 静态 Bootstrap 引导（关键：防止向国内 DNS 暴露自建域名，彻底消除冷启动死锁）
+# 若您的自建 DoH 托管在 Cloudflare，可保留下方 CF 边缘 IP 或替换为您常用的 CF 优选 IP；若在自有 VPS，请替换为 VPS IP
+doh.dogdns.xyz = 104.18.10.118, 104.18.11.118, 172.67.154.85
+doh.com.kg = 104.18.10.118, 104.18.11.118, 172.67.154.85
+
+# 3. 苹果 Portal 认证与局域网设备豁免
 captive.apple.com = server:syslib
 *.local = server:syslib
 *.lan = server:syslib
@@ -24,14 +32,24 @@ tplogin.cn = server:syslib
 *.tplogin.cn = server:syslib
 
 [Rule]
+# --- ECH 节点域名与公共外层 SNI 防回环保护 ---
+# 请将 your-domain-a.com 替换为您托管在 Cloudflare 的域名 A
+DOMAIN-SUFFIX, your-domain-a.com, DIRECT
+DOMAIN-SUFFIX, cloudflare-ech.com, DIRECT
+
+# --- 局域网与 Portal 认证直连 ---
 DOMAIN, captive.apple.com, DIRECT
 DOMAIN-SUFFIX, local, DIRECT
 DOMAIN-SUFFIX, lan, DIRECT
 DOMAIN-SUFFIX, router.asus.com, DIRECT
 DOMAIN-SUFFIX, miwifi.com, DIRECT
 DOMAIN-SUFFIX, tplogin.cn, DIRECT
+
+# --- 自建私有 DoH 强制走代理隧道（确保海外精准解析与通过 DNS 泄漏测试） ---
 DOMAIN-SUFFIX, dogdns.xyz, PROXY
 DOMAIN-SUFFIX, doh.com.kg, PROXY
+
+# --- DNS / WebRTC 隐私泄漏检测站强制走代理 ---
 DOMAIN-KEYWORD, dnsleak, PROXY
 DOMAIN-SUFFIX, dnsleaktest.com, PROXY
 DOMAIN-SUFFIX, bash.ws, PROXY
@@ -41,6 +59,8 @@ DOMAIN-SUFFIX, browserleaks.com, PROXY
 DOMAIN-SUFFIX, browserleaks.org, PROXY
 DOMAIN-SUFFIX, pixelscan.net, PROXY
 DOMAIN-SUFFIX, whoer.net, PROXY
+
+# --- 本地 DNS 探测与广告探针黑洞 ---
 DOMAIN-SUFFIX, localdns.com, REJECT
 DOMAIN-SUFFIX, doubleclick.net, REJECT
 DOMAIN-SUFFIX, google-analytics.com, REJECT

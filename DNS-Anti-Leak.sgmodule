@@ -5,7 +5,7 @@
 [General]
 # 主 DNS：采用阿里 IP-DoH（免除前置域名解析）与域名 DoH/DoQ 混合池，确保 100% 完整获取 Cloudflare ECH (Type 65) 记录
 dns-server = https://223.5.5.5/dns-query, https://223.6.6.6/dns-query, quic://dns.alidns.com:853
-# 回退 DNS：使用您的私有自建 DoH，配合下方 [Rule] 强制走代理隧道，对外完全隐藏自建域名 SNI
+# 回退 DNS：使用私有自建 DoH，配合下方 [Rule] 强制走代理隧道，对外完全隐藏自建域名 SNI
 fallback-dns-server = https://doh.dogdns.xyz/cloudflare, https://doh.dogdns.xyz/google, https://doh.com.kg/cloudflare, https://doh.com.kg/google
 # 禁用 IPv6 与系统原生直连 DNS，杜绝 IPv6 旁路泄露与 ISP 运营商 DNS 污染
 ipv6 = false
